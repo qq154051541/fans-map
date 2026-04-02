@@ -1,0 +1,49 @@
+/* 弹幕容器样式 */
+#danmaku-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+/* 弹幕元素样式 */
+.danmaku {
+    position: absolute;
+    white-space: nowrap;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    animation: danmaku-move linear forwards;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+/* 弹幕动画 */
+@keyframes danmaku-move {
+    from {
+        left: 100%;
+    }
+    to {
+        left: -100%;
+    }
+}
+
+/* 全屏模式下的弹幕 */
+:fullscreen #danmaku-container {
+    z-index: 9999;
+}
+
+:-webkit-full-screen #danmaku-container {
+    z-index: 9999;
+}
+
+:-ms-fullscreen #danmaku-container {
+    z-index: 9999;
+}

@@ -1,0 +1,619 @@
+:root {
+    --bg-dark: #121212;
+    --bg-panel: #1e1e1e;
+    --bg-hover: #2c2c2c;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #ff69b4; /* Jay Pink (HotPink) */
+    --accent-hover: #ff1493; /* DeepPink */
+    --border-color: #333;
+    --sidebar-width: 64px;
+    --panel-width: 320px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Microsoft YaHei", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+}
+
+#app {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--bg-dark);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    z-index: 2000;
+}
+
+.logo {
+    color: var(--accent-color);
+    font-size: 24px;
+    margin-bottom: 32px;
+}
+
+.nav-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+.nav-item {
+    width: 100%;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: var(--accent-color);
+}
+
+.user-profile {
+    margin-top: auto;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Panel */
+.panel {
+    width: var(--panel-width);
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.2);
+}
+
+.panel-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.panel-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: hidden;
+}
+
+.metric-card {
+    background-color: var(--bg-hover);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.metric-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.metric-change {
+    font-size: 12px;
+    color: #4ade80; /* Green */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.layer-control h3, .chart-container h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+
+.layer-item input {
+    margin-right: 12px;
+    accent-color: var(--accent-color);
+}
+
+.layer-item label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.color-dot.hub { background-color: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+.color-dot.dev { background-color: #1785fb; box-shadow: 0 0 8px rgba(23, 133, 251, 0.4); }
+
+.chart-container {
+    margin-top: 32px;
+    flex: 1; /* 占据剩余空间 */
+    overflow: hidden; /* 隐藏容器滚动 */
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* 关键：允许 flex 子项收缩 */
+}
+
+.bar-chart {
+    flex: 1;
+    overflow-y: auto; /* 条形图内容可滚动 */
+    padding-right: 8px; /* 给滚动条留点空间 */
+    max-height: 200px; /* 设置最大高度，确保滚动条能显示 */
+    scrollbar-width: thin; /* Firefox 滚动条样式 */
+    scrollbar-color: var(--accent-color) var(--bg-dark); /* Firefox 滚动条颜色 */
+}
+
+/* 自定义滚动条样式 (Chrome/Safari) */
+.bar-chart::-webkit-scrollbar {
+    width: 6px; /* 更明显的滚动条 */
+}
+.bar-chart::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+.bar-chart::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color); /* 使用主题色 */
+    border-radius: 3px;
+}
+.bar-chart::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-hover); /* 悬停时加深 */
+}
+
+.bar-row {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.bar-row .label {
+    width: 60px;
+    color: var(--text-secondary);
+    white-space: nowrap; /* 防止换行 */
+    overflow: hidden;    /* 超出隐藏 */
+    text-overflow: ellipsis; /* 显示省略号 */
+}
+
+.bar-bg {
+    flex: 1;
+    height: 6px;
+    background-color: var(--bg-dark);
+    border-radius: 3px;
+    margin: 0 12px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 3px;
+}
+
+.bar-row .value {
+    width: 45px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.panel-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-primary {
+    width: 100%;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Map */
+#map {
+    flex: 1;
+    background-color: #111; /* Fallback */
+    z-index: 1;
+}
+
+/* Toolbar */
+.toolbar {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 3000; /* 提高层级，确保在所有元素之上 */
+}
+
+.toolbar button, .toolbar .btn-icon {
+    width: 40px;
+    height: 40px;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+    text-decoration: none; /* For <a> tags */
+}
+
+.toolbar .btn-icon.btn-text {
+    width: auto;
+    padding: 0 16px;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.toolbar button:hover, .toolbar .btn-icon:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Map Icons & Animations */
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.33);
+        opacity: 0.8;
+    }
+    80%, 100% {
+        transform: scale(1.5); /* 扩大脉冲范围 */
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-dot {
+    0% {
+        transform: scale(0.8);
+    }
+    50% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(0.8);
+    }
+}
+
+.hub-marker {
+    /* position: relative;  <-- 移除此行，Leaflet 的 Marker 必须是 absolute 定位，否则会失去地理位置跟随 */
+    background: transparent; /* 确保背景透明 */
+    width: 20px;
+    height: 20px;
+}
+
+/* 扩散的波纹 */
+.hub-marker::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 40px; /* 增加初始大小 */
+    height: 40px;
+    margin-left: -20px;
+    margin-top: -20px;
+    border-radius: 50%;
+    background-color: rgba(245, 158, 11, 0.5);
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* 额外的外发光层 */
+.hub-marker::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50px;
+    height: 50px;
+    margin-left: -25px;
+    margin-top: -25px;
+    border-radius: 50%;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    animation-delay: 0.5s; /* 错开时间，形成多重波纹 */
+}
+
+/* 中心实心点 */
+.hub-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    margin-top: -7px;
+    background-color: #f59e0b;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+    animation: pulse-dot 2s ease-in-out infinite;
+    z-index: 2;
+}
+
+/* Leaflet Customization for Dark Theme */
+.dark-filter {
+    filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) grayscale(30%);
+    /* 
+       invert(100%): 反转颜色，白变黑，黑变白
+       hue-rotate(180deg): 修正色相，让水体从反转后的橙色变回蓝色
+       brightness(85%): 稍微调暗一点，避免太刺眼
+       contrast(90%): 降低对比度，更柔和
+       grayscale(30%): 降低饱和度，更像科技风
+    */
+}
+
+.leaflet-container {
+    background: #111 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.leaflet-control-zoom {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.leaflet-control-zoom a {
+    background-color: var(--bg-panel) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    margin-bottom: 4px !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-panel) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-popup-content h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+/* 全屏模式样式 */
+:fullscreen {
+    overflow: hidden;
+}
+
+:-webkit-full-screen {
+    overflow: hidden;
+}
+
+:-ms-fullscreen {
+    overflow: hidden;
+}
+
+/* 全屏模式下的工具栏按钮 */
+:fullscreen .toolbar {
+    z-index: 9999;
+}
+
+:-webkit-full-screen .toolbar {
+    z-index: 9999;
+}
+
+:-ms-fullscreen .toolbar {
+    z-index: 9999;
+}
+
+/* 全屏模式下的地图 */
+:fullscreen #map {
+    height: 100vh;
+}
+
+:-webkit-full-screen #map {
+    height: 100vh;
+}
+
+:-ms-fullscreen #map {
+    height: 100vh;
+}
+
+
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    #app {
+        flex-direction: column-reverse; /* 手机端面板在下，地图在上 */
+    }
+
+    /* 手机端面板需要滚动 */
+    .panel-content {
+        overflow-y: auto !important; 
+        display: block !important;
+    }
+
+    .chart-container {
+        overflow-y: visible !important; /* 手机端不需要内部滚动，随面板一起滚 */
+        flex: none !important;
+        min-height: auto !important;
+    }
+
+    .sidebar {
+        flex-direction: row;
+        width: 100%;
+        height: 50px;
+        padding: 0 16px;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        order: 3; /* 放在最底部 */
+    }
+
+    .logo {
+        margin-bottom: 0;
+        margin-right: auto;
+        font-size: 20px;
+    }
+
+    .nav-items {
+        flex-direction: row;
+        width: auto;
+        gap: 16px;
+    }
+
+    .nav-item {
+        width: auto;
+        height: 100%;
+        padding: 0 12px;
+    }
+    
+    .nav-item.active::before {
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: auto;
+        width: 100%;
+        height: 3px;
+    }
+
+    .user-profile {
+        margin-top: 0;
+        margin-left: 16px;
+    }
+
+    .panel {
+        width: 100%;
+        height: 40%; /* 默认占据 40% 高度 */
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        order: 2; /* 放在中间 */
+        transition: height 0.3s ease;
+    }
+    
+    /* 可以在手机端添加一个折叠面板的交互 (可选) */
+    .panel-header {
+        padding: 16px;
+    }
+    
+    .panel-content {
+        padding: 16px;
+        /* 手机端恢复默认滚动行为 */
+        display: block;
+        overflow-y: auto;
+    }
+
+    .chart-container {
+        /* 手机端取消内部滚动，改为随面板滚动 */
+        flex: none;
+        overflow-y: visible;
+        padding-right: 0;
+        min-height: auto;
+    }
+
+    #map {
+        height: 60%; /* 地图占据剩余空间 */
+        order: 1; /* 地图在最上 */
+        position: relative;
+    }
+
+    .toolbar {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        left: auto;
+        justify-content: flex-end;
+        z-index: 3000;
+    }
+    
+    .toolbar .btn-icon.btn-text {
+        width: auto;
+        font-size: 12px;
+        padding: 0 12px;
+        gap: 6px;
+        white-space: nowrap;
+    }
+}
+
+/* Tablet / Small Laptop */
+@media (min-width: 769px) and (max-width: 1024px) {
+    :root {
+        --panel-width: 280px; /* 平板端面板稍窄 */
+    }
+}

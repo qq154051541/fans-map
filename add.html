@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入周杰伦歌迷大家庭</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/add.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <div class="form-header">
+                <h1><i class="fa-solid fa-microphone-lines" style="color: var(--accent-color);"></i> 点亮你的坐标</h1>
+                <p>加入周杰伦歌迷大家庭，让世界看到你的位置</p>
+                <p style="font-size: 12px; margin-top: 8px; color: var(--accent-color);">"哎哟，不错哦"</p>
+            </div>
+
+            <form id="join-form">
+                <div class="form-group">
+                    <label for="nickname">昵称 (最多10个字)</label>
+                    <input type="text" id="nickname" class="form-control" placeholder="请输入你的昵称" maxlength="10" required>
+                </div>
+
+                <div class="form-group">
+                    <label>选择头像</label>
+                    <div class="avatar-upload-container">
+                        <label class="btn-secondary" style="display: inline-block; width: auto; margin-bottom: 12px;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 上传图片
+                            <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                        </label>
+                        <span id="file-name" style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;"></span>
+                        <div id="avatar-preview" style="width: 60px; height: 60px; border-radius: 50%; background-color: var(--bg-dark); margin-top: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid var(--accent-color);">
+                            <span style="font-size: 24px;">👤</span>
+                        </div>
+                    </div>
+                    
+                    <div class="divider" style="margin: 16px 0; border-top: 1px solid var(--border-color); position: relative; text-align: center;">
+                        <span style="background-color: var(--bg-panel); padding: 0 8px; color: var(--text-secondary); position: relative; top: -10px; font-size: 12px;">或者选择 Emoji</span>
+                    </div>
+
+                    <div class="avatar-grid" id="avatar-selector">
+                        <div class="avatar-option" data-val="👨‍💻">👨‍💻</div>
+                        <div class="avatar-option" data-val="👩‍💻">👩‍💻</div>
+                        <div class="avatar-option" data-val="🚀">🚀</div>
+                        <div class="avatar-option" data-val="🤖">🤖</div>
+                        <div class="avatar-option" data-val="🦊">🦊</div>
+                        <div class="avatar-option" data-val="🐱">🐱</div>
+                        <div class="avatar-option" data-val="🐼">🐼</div>
+                        <div class="avatar-option" data-val="⚡">⚡</div>
+                    </div>
+                    <input type="hidden" id="avatar" name="avatar" required>
+                </div>
+
+                <div class="form-group">
+                    <label>选择你的位置 (点击地图)</label>
+                    <div id="picker-map"></div>
+                    <div class="location-hint">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span id="location-text">尚未选择位置</span>
+                    </div>
+                    <input type="hidden" id="lat" name="lat" required>
+                    <input type="hidden" id="lng" name="lng" required>
+                </div>
+
+                <div class="btn-group">
+                    <a href="index.html" class="btn-secondary" style="flex: 1"><i class="fa-solid fa-map"></i> 查看地图</a>
+                    <button type="submit" class="btn-primary" style="flex: 2">加入网络</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/hubs.js"></script>
+    <script src="js/add.js"></script>
+</body>
+</html>

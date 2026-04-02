@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周杰伦歌迷朋友全球分布图</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/danmaku.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 左侧面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>周杰伦歌迷全球分布</h2>
+                <div class="subtitle">"最美的不是下雨天，是曾与你躲过雨的屋檐"</div>
+            </div>
+            
+            <div class="panel-content">
+                <div class="metric-card">
+                    <div class="metric-title"><i class="fa-solid fa-music"></i> 杰迷总数</div>
+                    <div class="metric-value">12,450</div>
+                    <div class="metric-change positive">无与伦比 <i class="fa-solid fa-heart"></i></div>
+                </div>
+
+                <div class="layer-control">
+                    <h3>图层管理</h3>
+                    <div class="layer-item">
+                        <input type="checkbox" id="layer-hubs" checked>
+                        <label for="layer-hubs">
+                            <span class="color-dot hub"></span>
+                            地区歌迷会
+                        </label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="layer-devs" checked>
+                        <label for="layer-devs">
+                            <span class="color-dot dev"></span>
+                            歌迷朋友
+                        </label>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fa-solid fa-location-dot"></i> 歌迷会排行</h3>
+                    <div class="bar-chart">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- <div class="panel-footer">
+                <button class="btn-primary">导出报告</button>
+            </div> -->
+        </div>
+
+        <!-- 地图容器 -->
+        <div id="map">
+            <!-- 弹幕容器 -->
+            <div id="danmaku-container"></div>
+        </div>
+    </div>
+
+    <!-- 右上角工具栏 -->
+    <div class="toolbar">
+        <a href="add.html" class="btn-icon btn-text" title="加入我们">
+            <i class="fa-solid fa-plus"></i>
+            <span>加入我们</span>
+        </a>
+        <button id="fullscreen-btn" title="全屏模式"><i class="fa-solid fa-expand"></i></button>
+        <!-- <button title="搜索"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button title="分享"><i class="fa-solid fa-share-nodes"></i></button> -->
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/hubs.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/danmaku.js"></script>
+</body>
+</html>
