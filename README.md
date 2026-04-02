@@ -4,7 +4,7 @@
 
 这是一个展示周杰伦歌迷全球分布情况的互动地图应用，让世界各地的杰迷能够在地图上标记自己的位置，形成一个全球杰迷网络。
 
-![周杰伦歌迷全球分布地图](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Jay%20Chou%20fans%20world%20map%20application%20interface%20with%20interactive%20map%20showing%20fan%20locations%20around%20the%20globe&image_size=landscape_16_9)
+![周杰伦歌迷全球分布地图](imgs/demo.png)
 
 ## 功能特点
 
