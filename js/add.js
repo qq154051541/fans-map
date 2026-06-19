@@ -90,20 +90,20 @@ avatarUpload.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 检查大小 (10MB = 1024 * 1024 * 10 bytes)
-    if (file.size > 1024 * 1024 * 10) {
+    // 检查大小 (2MB，上传后会压缩为缩略图)
+    if (file.size > 1024 * 1024 * 2) {
         // 检查 Swal 是否存在
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: '图片过大',
-                text: '图片大小不能超过 10MB！',
+                text: '图片大小不能超过 2MB！',
                 icon: 'warning',
                 confirmButtonText: '确定',
                 background: '#1e1e1e',
                 color: '#fff'
             });
         } else {
-            alert('图片大小不能超过 10MB！');
+            alert('图片大小不能超过 2MB！');
         }
         this.value = ''; // 清空
         return;
@@ -159,38 +159,79 @@ document.getElementById('join-form').addEventListener('submit', async function(e
         return;
     }
 
-    // --- 服务器上传逻辑 ---
-    async function uploadToServer(fileInput, nickname, avatarValue, lat, lng) {
-        // 默认头像列表
-        const defaultAvatars = ['👨‍💻', '👩‍💻', '🚀', '🤖', '🦊', '🐱', '🐼', '⚡', '🎸', '🎤', '🎨', '✨'];
-        
-        // 1. 上传图片 (如果有)
-        if (avatarValue === 'PENDING_UPLOAD' && fileInput.files[0]) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            try {
-                const res = await fetch('upload.php', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await res.json();
-                if (!res.ok || (data.error && data.error.length > 0)) {
-                    // 上传失败，随机选择一个默认头像
-                    console.warn('图片上传失败，使用默认头像:', data.error);
-                    avatarValue = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
-                } else {
-                    avatarValue = data.url; // 获取服务器返回的URL
-                }
-            } catch (error) {
-                // 网络错误或其他异常，随机选择一个默认头像
-                console.warn('图片上传失败，使用默认头像:', error.message);
-                avatarValue = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
-            }
+    // 检查配置是否完整
+    if (!CONFIG.API_KEY || !CONFIG.BIN_ID) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '配置错误',
+                text: '请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID',
+                icon: 'error',
+                confirmButtonText: '确定',
+                background: '#1e1e1e',
+                color: '#fff'
+            });
+        } else {
+            alert('请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID');
         }
+        return;
+    }
 
-        // 2. 保存用户数据
+    // 默认头像列表
+    const defaultAvatars = ['👨‍💻', '👩‍💻', '🚀', '🤖', '🦊', '🐱', '🐼', '⚡', '🎸', '🎤', '🎨', '✨'];
+
+    /**
+     * 将上传的图片压缩为缩略图后转为 Base64 Data URL
+     * 压缩为 48x48 像素的 JPEG，控制体积在 2-3KB 左右
+     * @param {File} file - 用户上传的图片文件
+     * @returns {Promise<string>} 压缩后的 Base64 Data URL 字符串
+     */
+    function compressAndEncodeImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 创建 canvas 进行缩放压缩
+                    const canvas = document.createElement('canvas');
+                    const size = 48; // 缩略图尺寸
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    // 居中裁剪为正方形
+                    const minSide = Math.min(img.width, img.height);
+                    const sx = (img.width - minSide) / 2;
+                    const sy = (img.height - minSide) / 2;
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+                    // 输出为 JPEG，质量 0.7，体积约 2-3KB
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * 保存用户数据到 JSONBin.io
+     * 先读取现有数据，追加新用户，再整体写回
+     * @param {string} nickname - 昵称
+     * @param {string} avatarValue - 头像值（Emoji 或 Base64）
+     * @param {number} lat - 纬度
+     * @param {number} lng - 经度
+     */
+    async function saveToJSONBin(nickname, avatarValue, lat, lng) {
+        // 1. 读取现有数据
+        const readRes = await fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': CONFIG.API_KEY }
+        });
+        
+        if (!readRes.ok) throw new Error('读取数据失败');
+        const readData = await readRes.json();
+        const currentUsers = Array.isArray(readData.record) ? readData.record : [];
+
+        // 2. 构造新用户数据
         const newUser = {
             nickname,
             avatar: avatarValue,
@@ -199,20 +240,43 @@ document.getElementById('join-form').addEventListener('submit', async function(e
             timestamp: new Date().getTime()
         };
 
-        const res = await fetch('save_user.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newUser)
+        // 3. 追加新用户
+        currentUsers.push(newUser);
+
+        // 4. 整体写回 JSONBin
+        const writeRes = await fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': CONFIG.API_KEY
+            },
+            body: JSON.stringify(currentUsers)
         });
 
-        if (!res.ok) throw new Error('数据保存失败');
+        if (!writeRes.ok) {
+            const errData = await writeRes.json().catch(() => ({}));
+            const errMsg = errData.message || '保存数据失败';
+            throw new Error(errMsg);
+        }
         
-        return { newUser, avatarValue };
+        return newUser;
     }
 
-    // 尝试服务器上传
+    // 处理头像：如果是上传的图片，转为 Base64
+    // 显示 loading 提示
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 提交中...';
+
     try {
-        const result = await uploadToServer(fileInput, nickname, avatarValue, lat, lng);
+        if (avatarValue === 'PENDING_UPLOAD' && fileInput.files[0]) {
+            // 将图片压缩为缩略图后转为 Base64 存储
+            avatarValue = await compressAndEncodeImage(fileInput.files[0]);
+        }
+
+        // 保存到 JSONBin.io
+        await saveToJSONBin(nickname, avatarValue, lat, lng);
         
         // 检查 Swal 是否存在
         if (typeof Swal !== 'undefined') {
@@ -232,6 +296,10 @@ document.getElementById('join-form').addEventListener('submit', async function(e
         window.location.href = 'index.html';
     } catch (e) {
         console.error('保存失败:', e);
+        
+        // 恢复按钮状态
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
         
         // 检查 Swal 是否存在
         if (typeof Swal !== 'undefined') {

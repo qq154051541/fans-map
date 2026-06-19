@@ -14,9 +14,14 @@
 <body>
     <div id="app">
         <!-- 左侧面板 -->
-        <div class="panel">
+        <div class="panel" id="panel">
             <div class="panel-header">
-                <h2>周杰伦歌迷全球分布</h2>
+                <div class="panel-header-top">
+                    <h2>周杰伦歌迷全球分布</h2>
+                    <button class="panel-toggle-btn" id="panel-toggle-btn" title="收起面板">
+                        <i class="fa-solid fa-angles-left"></i>
+                    </button>
+                </div>
                 <div class="subtitle">"最美的不是下雨天，是曾与你躲过雨的屋檐"</div>
             </div>
             
@@ -45,6 +50,29 @@
                     </div>
                 </div>
 
+                <div class="danmaku-control">
+                    <h3><i class="fa-solid fa-comment-dots"></i> 歌词弹幕</h3>
+                    <div class="layer-item">
+                        <input type="checkbox" id="danmaku-toggle" checked>
+                        <label for="danmaku-toggle">开启弹幕</label>
+                    </div>
+                    <div class="control-row">
+                        <label for="danmaku-opacity">透明度</label>
+                        <input type="range" id="danmaku-opacity" min="10" max="100" value="80">
+                        <span class="control-value" id="danmaku-opacity-val">80%</span>
+                    </div>
+                    <div class="control-row">
+                        <label for="danmaku-speed">速度</label>
+                        <input type="range" id="danmaku-speed" min="5" max="40" value="20">
+                        <span class="control-value" id="danmaku-speed-val">1.0x</span>
+                    </div>
+                    <div class="control-row">
+                        <label for="danmaku-density">密度</label>
+                        <input type="range" id="danmaku-density" min="500" max="5000" value="1500" step="100">
+                        <span class="control-value" id="danmaku-density-val">中</span>
+                    </div>
+                </div>
+
                 <div class="chart-container">
                     <h3><i class="fa-solid fa-location-dot"></i> 歌迷会排行</h3>
                     <div class="bar-chart">
@@ -67,6 +95,10 @@
 
     <!-- 右上角工具栏 -->
     <div class="toolbar">
+        <!-- 左侧面板展开按钮（面板收起时显示） -->
+        <button class="panel-expand-btn" id="panel-expand-btn" title="展开面板" style="display:none;">
+            <i class="fa-solid fa-angles-right"></i>
+        </button>
         <a href="add.html" class="btn-icon btn-text" title="加入我们">
             <i class="fa-solid fa-plus"></i>
             <span>加入我们</span>
@@ -78,6 +110,7 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/config.js"></script>
     <script src="js/hubs.js"></script>
     <script src="js/script.js"></script>
     <script src="js/danmaku.js"></script>

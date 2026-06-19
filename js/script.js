@@ -85,17 +85,29 @@ function renderHubs() {
 }
 renderHubs();
 
-// 从静态 JSON 文件加载用户数据
+// 从 JSONBin.io 加载用户数据
 function loadUsers() {
     devsLayer.clearLayers();
     
-    // 读取静态 JSON 文件
-    fetch('get_users.php')
+    // 检查配置是否完整
+    if (!CONFIG.API_KEY || !CONFIG.BIN_ID) {
+        console.error('请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID');
+        return;
+    }
+
+    // 从 JSONBin.io 读取数据
+    fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}/latest`, {
+        headers: {
+            'X-Master-Key': CONFIG.API_KEY
+        }
+    })
         .then(response => {
-            if (!response.ok) return []; // 如果文件不存在或加载失败，返回空数组
+            if (!response.ok) throw new Error('数据加载失败');
             return response.json();
         })
-        .then(users => {
+        .then(data => {
+            // JSONBin 返回的数据在 record 字段中
+            const users = data.record || [];
             // --- 统计逻辑开始 ---
             
             // 1. 计算歌迷总数 (只统计 users.json)
@@ -228,12 +240,7 @@ function loadUsers() {
 }
 
 // 初始加载
-// 检查运行环境
-if (window.location.protocol === 'file:') {
-    alert('错误：您正在直接打开 HTML 文件 (file:// 协议)。\n\n为了安全读取数据文件 (users.json)，浏览器要求必须使用 HTTP 服务器。\n\n请双击运行文件夹中的 "start.bat" 脚本，或使用 VS Code Live Server。');
-} else {
-    loadUsers();
-}
+loadUsers();
 
 // 图层控制逻辑
 document.getElementById('layer-hubs').addEventListener('change', (e) => {
@@ -324,3 +331,31 @@ function initFullscreen() {
 
 // 初始化全屏功能
 window.addEventListener('DOMContentLoaded', initFullscreen);
+
+/**
+ * 初始化面板收起/展开功能
+ */
+function initPanelToggle() {
+    const panel = document.getElementById('panel');
+    const toggleBtn = document.getElementById('panel-toggle-btn');
+    const expandBtn = document.getElementById('panel-expand-btn');
+
+    if (!panel || !toggleBtn || !expandBtn) return;
+
+    // 收起面板
+    toggleBtn.addEventListener('click', () => {
+        panel.classList.add('collapsed');
+        expandBtn.style.display = 'flex';
+        // 触发地图重绘以填充空白区域
+        setTimeout(() => map.invalidateSize(), 350);
+    });
+
+    // 展开面板
+    expandBtn.addEventListener('click', () => {
+        panel.classList.remove('collapsed');
+        expandBtn.style.display = 'none';
+        setTimeout(() => map.invalidateSize(), 350);
+    });
+}
+
+window.addEventListener('DOMContentLoaded', initPanelToggle);
