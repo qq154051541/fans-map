@@ -1,3 +1,27 @@
+// 全局功能状态（供 features.js 使用）
+const featureState = window.featureState = {
+    users: [],
+    userMarkers: [],
+    connectionMode: false,
+    connectionSelected: [],
+    connectionLines: [],
+    nearestHighlight: [],
+    heatmapLayer: null,
+    lyricRainActive: false,
+    lyricRainTimer: null,
+    guessGameActive: false,
+    guessScore: 0,
+    guessQuestionIndex: 0,
+    timelineActive: false,
+    timelinePlaying: false,
+    timelineProgress: 0,
+    timelineTimer: null,
+    timelineSpeed: 1,
+    vinylSpinning: false,
+    loves: {},
+    messages: {}
+};
+
 // 初始化地图，设置中心点为中国视图
 const map = L.map('map', {
     zoomControl: false, // 禁用默认缩放控件，我们将重新添加并自定义位置
@@ -60,7 +84,7 @@ const devIcon = L.divIcon({
 
 // 创建图层组
 const hubsLayer = L.layerGroup().addTo(map);
-const devsLayer = L.layerGroup().addTo(map);
+const devsLayer = window.devsLayer = L.layerGroup().addTo(map);
 
 // 渲染核心研发中心 (初始渲染，后续 loadUsers 会更新)
 function renderHubs() {
@@ -85,158 +109,177 @@ function renderHubs() {
 }
 renderHubs();
 
-// 从 JSONBin.io 加载用户数据
-function loadUsers() {
+// 从 gongju.dev 加载用户数据（支持多批次）
+async function loadUsers() {
     devsLayer.clearLayers();
+    featureState.users = [];
+    featureState.userMarkers = [];
     
-    // 检查配置是否完整
-    if (!CONFIG.API_KEY || !CONFIG.BIN_ID) {
-        console.error('请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID');
+    // 先加载索引，获取所有数据批次 ID
+    await loadBinIndex();
+
+    // 加载互动数据（打call + 留言）
+    const interactData = await loadInteractData();
+    featureState.loves = interactData.loves;
+    featureState.messages = interactData.messages;
+
+    if (CONFIG.DATA_IDS.length === 0) {
+        console.error('没有可用的数据批次');
         return;
     }
 
-    // 从 JSONBin.io 读取数据
-    fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}/latest`, {
-        headers: {
-            'X-Master-Key': CONFIG.API_KEY
+    try {
+        // 从所有批次并行读取数据
+        const fetchPromises = CONFIG.DATA_IDS.map(dataId =>
+            fetch(`${CONFIG.API_BASE}/${dataId}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`批次 ${dataId} 加载失败`);
+                return response.json();
+            })
+            .then(data => {
+                // gongju.dev 可能将数据包裹在 content 字段中
+                if (data && data.content && Array.isArray(data.content)) return data.content;
+                return Array.isArray(data) ? data : [];
+            })
+            .catch(err => {
+                console.error(`加载批次 ${dataId} 失败:`, err);
+                return [];
+            })
+        );
+
+        const allBatches = await Promise.all(fetchPromises);
+        // 合并所有批次数据
+        const users = allBatches.flat();
+        // 缓存用户数据到 featureState
+        featureState.users = users;
+        // --- 统计逻辑开始 ---
+        
+        // 1. 计算歌迷总数
+        const totalCount = users.length;
+        
+        // 更新面板上的总数
+        const metricElement = document.querySelector('.metric-value');
+        if (metricElement) {
+            metricElement.textContent = totalCount.toLocaleString();
         }
-    })
-        .then(response => {
-            if (!response.ok) throw new Error('数据加载失败');
-            return response.json();
-        })
-        .then(data => {
-            // JSONBin 返回的数据在 record 字段中
-            const users = data.record || [];
-            // --- 统计逻辑开始 ---
-            
-            // 1. 计算歌迷总数 (只统计 users.json)
-            const totalCount = users.length;
-            
-            // 更新面板上的总数
-            const metricElement = document.querySelector('.metric-value');
-            if (metricElement) {
-                metricElement.textContent = totalCount.toLocaleString();
+
+        // 2. 更新区域分布图表（按最近的省会归类）
+        const chartContainer = document.querySelector('.bar-chart');
+        if (chartContainer) {
+            const provinceStats = {};
+            hubs.forEach(hub => {
+                provinceStats[hub.name] = 0;
+                hub.devs = 0;
+            });
+
+            function getDistSq(lat1, lng1, lat2, lng2) {
+                return (lat1 - lat2) ** 2 + (lng1 - lng2) ** 2;
             }
-
-            // 2. 更新区域分布图表 (只统计 users.json，按最近的省会归类)
-            const chartContainer = document.querySelector('.bar-chart');
-            if (chartContainer) {
-                // 初始化统计对象
-                const provinceStats = {};
-                hubs.forEach(hub => {
-                    provinceStats[hub.name] = 0;
-                    // 重置 hub.devs 计数，避免重复累加
-                    hub.devs = 0;
-                });
-
-                // 简单的距离计算函数 (欧氏距离近似，对于寻找最近点足够了)
-                function getDistSq(lat1, lng1, lat2, lng2) {
-                    return (lat1 - lat2) ** 2 + (lng1 - lng2) ** 2;
-                }
-
-                // 遍历用户，归类到最近的省会
-                users.forEach(user => {
-                    let minD = Infinity;
-                    let nearestHub = null;
-
-                    for (const hub of hubs) {
-                        const d = getDistSq(user.lat, user.lng, hub.lat, hub.lng);
-                        if (d < minD) {
-                            minD = d;
-                            nearestHub = hub;
-                        }
-                    }
-
-                    if (nearestHub) {
-                        provinceStats[nearestHub.name]++;
-                        // 累加到 hub 对象上，以便在 Popup 中显示
-                        nearestHub.devs++;
-                    }
-                });
-
-                // 转换为数组并排序
-                const sortedProvinces = Object.entries(provinceStats)
-                    .map(([name, count]) => ({ name, count }))
-                    .sort((a, b) => b.count - a.count);
-                    // .filter(item => item.count > 0); // (已注释掉，显示所有包括0)
-                    // .slice(0, 5); // 取前5 (已注释掉，显示所有)
-
-                // 获取最大值用于计算进度条比例
-                const maxCount = sortedProvinces.length > 0 ? sortedProvinces[0].count : 0;
-
-                const chartHtml = sortedProvinces.map(item => {
-                    const widthPercent = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-                    // 截取城市名 (去掉"歌迷会")
-                    const cityName = item.name.replace('歌迷会', '');
-                    
-                    return `
-                        <div class="bar-row">
-                            <span class="label" style="width: 50px;">${cityName}</span>
-                            <div class="bar-bg" style="flex: 1; margin: 0 10px;"><div class="bar-fill" style="width: ${widthPercent}%"></div></div>
-                            <span class="value" style="width: 45px; text-align: right;">${item.count}</span>
-                        </div>
-                    `;
-                }).join('');
-
-                chartContainer.innerHTML = chartHtml || '<div style="text-align:center; color:#666; font-size:12px; padding:10px;">暂无数据</div>';
-            }
-            // --- 统计逻辑结束 ---
-            
-            // 3. 重新渲染hubs，显示最新的粉丝数据
-            renderHubs();
 
             users.forEach(user => {
-                // 确保avatar字段存在，否则使用默认值
-                const avatar = user.avatar || '';
-                
-                // 检查头像是否是图片路径 (以 imgs/ 开头)、Base64 或外部 URL
-                // 注意：旧数据可能是 Base64，新数据是 imgs/xxx.jpg 或 https:// 开头的外部 URL
-                const isImage = avatar.startsWith('imgs/') || avatar.startsWith('data:image') || avatar.startsWith('http://') || avatar.startsWith('https://');
-                const avatarContent = isImage 
-                    ? `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">`
-                    : (avatar || '👤');
+                let minD = Infinity;
+                let nearestHub = null;
+                for (const hub of hubs) {
+                    const d = getDistSq(user.lat, user.lng, hub.lat, hub.lng);
+                    if (d < minD) { minD = d; nearestHub = hub; }
+                }
+                if (nearestHub) {
+                    provinceStats[nearestHub.name]++;
+                    nearestHub.devs++;
+                }
+            });
 
-                // 创建带有头像的自定义图标
-                const userIcon = L.divIcon({
-                    className: 'user-marker',
-                    html: `<div style="
+            const sortedProvinces = Object.entries(provinceStats)
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count);
+
+            const maxCount = sortedProvinces.length > 0 ? sortedProvinces[0].count : 0;
+
+            const chartHtml = sortedProvinces.map(item => {
+                const widthPercent = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                const cityName = item.name.replace('歌迷会', '');
+                return `
+                    <div class="bar-row">
+                        <span class="label" style="width: 50px;">${cityName}</span>
+                        <div class="bar-bg" style="flex: 1; margin: 0 10px;"><div class="bar-fill" style="width: ${widthPercent}%"></div></div>
+                        <span class="value" style="width: 45px; text-align: right;">${item.count}</span>
+                    </div>
+                `;
+            }).join('');
+
+            chartContainer.innerHTML = chartHtml || '<div style="text-align:center; color:#666; font-size:12px; padding:10px;">暂无数据</div>';
+        }
+        // --- 统计逻辑结束 ---
+        
+        // 3. 重新渲染hubs
+        renderHubs();
+
+        users.forEach(user => {
+            const avatar = user.avatar || '';
+            const isImage = avatar.startsWith('imgs/') || avatar.startsWith('data:image') || avatar.startsWith('http://') || avatar.startsWith('https://');
+            const avatarContent = isImage 
+                ? `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">`
+                : (avatar || '👤');
+
+            // 获取打call数量
+            const loveCount = featureState.loves[user.nickname] || 0;
+            const loveBadge = loveCount > 0
+                ? `<div class="love-badge">❤️${loveCount}</div>`
+                : '';
+
+            const userIcon = L.divIcon({
+                className: 'user-marker',
+                html: `<div class="user-marker-wrap">
+                    <div style="
                         background-color: #1e1e1e;
                         border: 2px solid #1785fb;
                         border-radius: 50%;
-                        width: 24px;
-                        height: 24px;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
+                        width: 24px; height: 24px;
+                        display: flex; justify-content: center; align-items: center;
                         font-size: 14px;
                         box-shadow: 0 0 8px rgba(23, 133, 251, 0.5);
                         overflow: hidden;
-                    ">${avatarContent}</div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-
-                L.marker([user.lat, user.lng], { icon: userIcon })
-                    .bindPopup(`
-                        <div style="text-align: center;">
-                            <div style="font-size: 24px; margin-bottom: 4px; width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #333;">
-                                ${isImage ? `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">` : (avatar || '👤')}
-                            </div>
-                            <h3 style="margin: 0; color: #fff;">${user.nickname}</h3>
-                            <p style="margin: 4px 0 0; color: #a0a0a0; font-size: 12px;">加入于: ${new Date(user.timestamp || Date.now()).toLocaleDateString()}</p>
-                        </div>
-                    `)
-                    .on('mouseover', function (e) {
-                        this.openPopup();
-                    })
-                    .on('mouseout', function (e) {
-                        this.closePopup();
-                    })
-                    .addTo(devsLayer);
+                    ">${avatarContent}</div>
+                    ${loveBadge}
+                </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
-        })
-        .catch(err => console.error('Failed to load users:', err));
+
+            const marker = L.marker([user.lat, user.lng], { icon: userIcon });
+            featureState.userMarkers.push({ marker, user });
+
+            // 动态生成弹窗内容（每次打开时重新读取 localStorage）
+            function buildPopupContent(u) {
+                const isImg = u.avatar && (u.avatar.startsWith('data:') || u.avatar.startsWith('http'));
+                const avContent = isImg
+                    ? `<img src="${u.avatar}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">`
+                    : (u.avatar || '👤');
+                return `
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 4px; width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #333;">
+                            ${avContent}
+                        </div>
+                        <h3 style="margin: 0; color: #fff;">${u.nickname}</h3>
+                        <p style="margin: 4px 0 0; color: #a0a0a0; font-size: 12px;">加入于: ${new Date(u.timestamp || Date.now()).toLocaleDateString()}</p>
+                        ${typeof getLoveHTML === 'function' ? getLoveHTML(u.nickname) : ''}
+                        ${typeof getMessageHTML === 'function' ? getMessageHTML(u) : ''}
+                    </div>
+                `;
+            }
+
+            marker.bindPopup(() => buildPopupContent(user), { maxWidth: 250, closeButton: true });
+            marker.on('click', function () {
+                this.openPopup();
+                if (typeof handleConnectionClick === 'function') {
+                    handleConnectionClick(marker, user);
+                }
+            });
+            marker.addTo(devsLayer);
+        });
+    } catch (err) {
+        console.error('加载用户数据失败:', err);
+    }
 }
 
 // 初始加载

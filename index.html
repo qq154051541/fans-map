@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/danmaku.css">
+    <link rel="stylesheet" href="css/features.css">
 </head>
 <body>
     <div id="app">
@@ -37,6 +38,7 @@
                     <div class="layer-item">
                         <input type="checkbox" id="layer-hubs" checked>
                         <label for="layer-hubs">
+                            <span class="switch"></span>
                             <span class="color-dot hub"></span>
                             地区歌迷会
                         </label>
@@ -44,32 +46,70 @@
                     <div class="layer-item">
                         <input type="checkbox" id="layer-devs" checked>
                         <label for="layer-devs">
+                            <span class="switch"></span>
                             <span class="color-dot dev"></span>
-                            歌迷朋友
+                            歌迷标记点
                         </label>
                     </div>
                 </div>
 
                 <div class="danmaku-control">
-                    <h3><i class="fa-solid fa-comment-dots"></i> 歌词弹幕</h3>
-                    <div class="layer-item">
-                        <input type="checkbox" id="danmaku-toggle" checked>
-                        <label for="danmaku-toggle">开启弹幕</label>
+                    <h3><i class="fa-solid fa-comment-dots"></i> 歌词特效</h3>
+                    <div class="mode-selector">
+                        <label class="mode-option active" id="mode-danmaku">
+                            <input type="radio" name="lyric-mode" value="danmaku" checked>
+                            <span class="mode-icon"><i class="fa-solid fa-comment"></i></span>
+                            <span>弹幕</span>
+                        </label>
+                        <label class="mode-option" id="mode-lyric-rain">
+                            <input type="radio" name="lyric-mode" value="lyric-rain">
+                            <span class="mode-icon"><i class="fa-solid fa-cloud-rain"></i></span>
+                            <span>歌词雨</span>
+                        </label>
+                        <label class="mode-option" id="mode-none">
+                            <input type="radio" name="lyric-mode" value="none">
+                            <span class="mode-icon"><i class="fa-solid fa-xmark"></i></span>
+                            <span>关闭</span>
+                        </label>
                     </div>
                     <div class="control-row">
-                        <label for="danmaku-opacity">透明度</label>
-                        <input type="range" id="danmaku-opacity" min="10" max="100" value="80">
-                        <span class="control-value" id="danmaku-opacity-val">80%</span>
+                        <label for="lyric-opacity">透明度</label>
+                        <input type="range" id="lyric-opacity" min="10" max="100" value="80">
+                        <span class="control-value" id="lyric-opacity-val">80%</span>
                     </div>
                     <div class="control-row">
-                        <label for="danmaku-speed">速度</label>
-                        <input type="range" id="danmaku-speed" min="5" max="40" value="20">
-                        <span class="control-value" id="danmaku-speed-val">1.0x</span>
+                        <label for="lyric-speed">速度</label>
+                        <input type="range" id="lyric-speed" min="5" max="40" value="20">
+                        <span class="control-value" id="lyric-speed-val">1.0x</span>
                     </div>
                     <div class="control-row">
-                        <label for="danmaku-density">密度</label>
-                        <input type="range" id="danmaku-density" min="500" max="5000" value="1500" step="100">
-                        <span class="control-value" id="danmaku-density-val">中</span>
+                        <label for="lyric-density">密度</label>
+                        <input type="range" id="lyric-density" min="100" max="1000" value="300" step="50">
+                        <span class="control-value" id="lyric-density-val">中</span>
+                    </div>
+                </div>
+
+                <!-- 创意功能区 -->
+                <div class="feature-section">
+                    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> 创意互动</h3>
+                    <div class="feature-btn-row">
+                        <button class="feature-btn" id="btn-connect" title="点击两个歌迷画连线"><i class="fa-solid fa-bezier-curve"></i> 连线</button>
+                        <button class="feature-btn" id="btn-nearest" title="显示最近的3个歌迷"><i class="fa-solid fa-location-crosshairs"></i> 附近</button>
+                        <button class="feature-btn" id="btn-heatmap" title="歌迷密度热力图"><i class="fa-solid fa-fire"></i> 热力图</button>
+                        <button class="feature-btn" id="btn-guess" title="猜歌小游戏"><i class="fa-solid fa-gamepad"></i> 猜歌</button>
+                        <button class="feature-btn" id="btn-timeline" title="时光轴回放"><i class="fa-solid fa-clock-rotate-left"></i> 时光轴</button>
+                    </div>
+                </div>
+
+                <!-- 季节主题 -->
+                <div class="feature-section">
+                    <h3><i class="fa-solid fa-palette"></i> 季节主题</h3>
+                    <div class="theme-selector">
+                        <div class="theme-dot active" data-theme="default" title="默认 - 粉色"></div>
+                        <div class="theme-dot" data-theme="spring" title="春 - 七里香"></div>
+                        <div class="theme-dot" data-theme="summer" title="夏 - 晴天"></div>
+                        <div class="theme-dot" data-theme="autumn" title="秋 - 枫"></div>
+                        <div class="theme-dot" data-theme="winter" title="冬 - 发如雪"></div>
                     </div>
                 </div>
 
@@ -110,9 +150,14 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet MarkerCluster 标记聚合插件 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="js/config.js"></script>
     <script src="js/hubs.js"></script>
     <script src="js/script.js"></script>
     <script src="js/danmaku.js"></script>
+    <script src="js/features.js"></script>
 </body>
 </html>

@@ -12,64 +12,114 @@
     <link rel="stylesheet" href="css/add.css">
 </head>
 <body>
+    <!-- 背景装饰 -->
+    <div class="add-bg-decor">
+        <div class="bg-note note-1">♪</div>
+        <div class="bg-note note-2">♫</div>
+        <div class="bg-note note-3">♩</div>
+        <div class="bg-note note-4">♬</div>
+        <div class="bg-note note-5">🎵</div>
+        <div class="bg-glow glow-1"></div>
+        <div class="bg-glow glow-2"></div>
+    </div>
+
     <div class="container">
         <div class="form-card">
+            <!-- 顶部装饰条 -->
+            <div class="card-top-bar"></div>
+
             <div class="form-header">
-                <h1><i class="fa-solid fa-microphone-lines" style="color: var(--accent-color);"></i> 点亮你的坐标</h1>
-                <p>加入周杰伦歌迷大家庭，让世界看到你的位置</p>
-                <p style="font-size: 12px; margin-top: 8px; color: var(--accent-color);">"哎哟，不错哦"</p>
+                <div class="header-icon">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <h1>点亮你的坐标</h1>
+                <p class="header-sub">加入周杰伦歌迷大家庭，让世界看到你的位置</p>
+                <p class="header-quote">"哎哟，不错哦"</p>
             </div>
 
             <form id="join-form">
-                <div class="form-group">
-                    <label for="nickname">昵称 (最多10个字)</label>
-                    <input type="text" id="nickname" class="form-control" placeholder="请输入你的昵称" maxlength="10" required>
-                </div>
-
-                <div class="form-group">
-                    <label>选择头像</label>
-                    <div class="avatar-upload-container">
-                        <label class="btn-secondary" style="display: inline-block; width: auto; margin-bottom: 12px;">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> 上传图片
-                            <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
-                        </label>
-                        <span id="file-name" style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;"></span>
-                        <div id="avatar-preview" style="width: 60px; height: 60px; border-radius: 50%; background-color: var(--bg-dark); margin-top: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid var(--accent-color);">
-                            <span style="font-size: 24px;">👤</span>
+                <!-- 步骤1：昵称 -->
+                <div class="form-step">
+                    <div class="step-badge">1</div>
+                    <div class="step-content">
+                        <div class="form-group">
+                            <label for="nickname"><i class="fa-solid fa-user"></i> 你的昵称</label>
+                            <input type="text" id="nickname" class="form-control" placeholder="给自己取个酷炫的名字吧" maxlength="10" required>
+                            <div class="input-hint">最多 10 个字</div>
                         </div>
                     </div>
-                    
-                    <div class="divider" style="margin: 16px 0; border-top: 1px solid var(--border-color); position: relative; text-align: center;">
-                        <span style="background-color: var(--bg-panel); padding: 0 8px; color: var(--text-secondary); position: relative; top: -10px; font-size: 12px;">或者选择 Emoji</span>
-                    </div>
-
-                    <div class="avatar-grid" id="avatar-selector">
-                        <div class="avatar-option" data-val="👨‍💻">👨‍💻</div>
-                        <div class="avatar-option" data-val="👩‍💻">👩‍💻</div>
-                        <div class="avatar-option" data-val="🚀">🚀</div>
-                        <div class="avatar-option" data-val="🤖">🤖</div>
-                        <div class="avatar-option" data-val="🦊">🦊</div>
-                        <div class="avatar-option" data-val="🐱">🐱</div>
-                        <div class="avatar-option" data-val="🐼">🐼</div>
-                        <div class="avatar-option" data-val="⚡">⚡</div>
-                    </div>
-                    <input type="hidden" id="avatar" name="avatar" required>
                 </div>
 
-                <div class="form-group">
-                    <label>选择你的位置 (点击地图)</label>
-                    <div id="picker-map"></div>
-                    <div class="location-hint">
-                        <i class="fa-solid fa-location-dot"></i>
-                        <span id="location-text">尚未选择位置</span>
+                <!-- 步骤2：头像 -->
+                <div class="form-step">
+                    <div class="step-badge">2</div>
+                    <div class="step-content">
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-image"></i> 选择头像</label>
+
+                            <div class="avatar-section">
+                                <div class="avatar-upload-box" id="avatar-upload-box">
+                                    <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                                    <div class="upload-text">上传图片</div>
+                                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                                </div>
+                                <div class="avatar-preview-box" id="avatar-preview">
+                                    <span style="font-size: 28px;">👤</span>
+                                </div>
+                            </div>
+
+                            <div class="avatar-divider">
+                                <span>或者选择 Emoji</span>
+                            </div>
+
+                            <div class="avatar-grid" id="avatar-selector">
+                                <div class="avatar-option" data-val="🎵">🎵</div>
+                                <div class="avatar-option" data-val="🎶">🎶</div>
+                                <div class="avatar-option" data-val="🎤">🎤</div>
+                                <div class="avatar-option" data-val="🎧">🎧</div>
+                                <div class="avatar-option" data-val="🎸">🎸</div>
+                                <div class="avatar-option" data-val="🎹">🎹</div>
+                                <div class="avatar-option" data-val="💃">💃</div>
+                                <div class="avatar-option" data-val="🕺">🕺</div>
+                                <div class="avatar-option" data-val="🌟">🌟</div>
+                                <div class="avatar-option" data-val="✨">✨</div>
+                                <div class="avatar-option" data-val="🔥">🔥</div>
+                                <div class="avatar-option" data-val="💖">💖</div>
+                                <div class="avatar-option" data-val="🦋">🦋</div>
+                                <div class="avatar-option" data-val="🐱">🐱</div>
+                                <div class="avatar-option" data-val="🦊">🦊</div>
+                                <div class="avatar-option" data-val="🐼">🐼</div>
+                            </div>
+                            <input type="hidden" id="avatar" name="avatar" required>
+                        </div>
                     </div>
-                    <input type="hidden" id="lat" name="lat" required>
-                    <input type="hidden" id="lng" name="lng" required>
                 </div>
 
+                <!-- 步骤3：位置 -->
+                <div class="form-step">
+                    <div class="step-badge">3</div>
+                    <div class="step-content">
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-location-dot"></i> 你的位置</label>
+                            <div id="picker-map"></div>
+                            <div class="location-hint">
+                                <i class="fa-solid fa-hand-pointer"></i>
+                                <span id="location-text">点击地图选择你的位置</span>
+                            </div>
+                            <input type="hidden" id="lat" name="lat" required>
+                            <input type="hidden" id="lng" name="lng" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
                 <div class="btn-group">
-                    <a href="index.html" class="btn-secondary" style="flex: 1"><i class="fa-solid fa-map"></i> 查看地图</a>
-                    <button type="submit" class="btn-primary" style="flex: 2">加入网络</button>
+                    <a href="index.html" class="btn-back">
+                        <i class="fa-solid fa-arrow-left"></i> 返回地图
+                    </a>
+                    <button type="submit" class="btn-submit">
+                        <i class="fa-solid fa-rocket"></i> 加入网络
+                    </button>
                 </div>
             </form>
         </div>

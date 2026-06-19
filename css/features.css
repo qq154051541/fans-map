@@ -1,0 +1,675 @@
+/* ============================================
+   创意功能样式集合
+   ============================================ */
+
+/* ---------- 1. 歌迷连线 ---------- */
+.connection-line {
+    stroke: var(--accent-color);
+    stroke-width: 2;
+    fill: none;
+    filter: drop-shadow(0 0 6px var(--accent-color));
+    stroke-dasharray: 8 4;
+    animation: dash-flow 1s linear infinite;
+}
+
+@keyframes dash-flow {
+    to { stroke-dashoffset: -12; }
+}
+
+.connection-label {
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid var(--accent-color);
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--accent-color);
+    white-space: nowrap;
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+/* 连线模式激活时，用户标记的选中高亮 */
+.user-marker.connect-selected {
+    filter: brightness(1.5);
+    transform: scale(1.3);
+    transition: all 0.3s;
+}
+
+/* ---------- 2. 最近歌迷高亮 ---------- */
+.nearest-marker {
+    animation: nearest-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes nearest-pulse {
+    0%, 100% { filter: brightness(1); transform: scale(1); }
+    50% { filter: brightness(1.8); transform: scale(1.4); }
+}
+
+.nearest-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #ff69b4, #ff1493);
+    color: #fff;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(255, 105, 180, 0.6);
+    z-index: 10;
+}
+
+/* ---------- 3. 热力图 ---------- */
+.heatmap-legend {
+    position: absolute;
+    bottom: 40px;
+    left: 10px;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+    z-index: 800;
+    font-size: 11px;
+    color: var(--text-secondary);
+    backdrop-filter: blur(4px);
+}
+
+.heatmap-legend .gradient-bar {
+    width: 120px;
+    height: 8px;
+    border-radius: 4px;
+    margin: 6px 0 4px;
+    background: linear-gradient(to right, rgba(0,0,255,0.1), rgba(0,255,0,0.5), rgba(255,255,0,0.7), rgba(255,100,0,0.85), rgba(255,0,0,1));
+}
+
+.heatmap-legend .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+}
+
+/* ---------- 4. 唱片播放器 ---------- */
+.vinyl-player {
+    position: absolute;
+    bottom: 50px;
+    left: 10px;
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    padding: 6px 16px 6px 6px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: opacity 0.3s;
+}
+
+.vinyl-disc {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        #1a1a1a, #333, #1a1a1a, #333, #1a1a1a, #333, #1a1a1a, #333,
+        #1a1a1a, #333, #1a1a1a, #333, #1a1a1a, #333, #1a1a1a, #333
+    );
+    border: 2px solid #555;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.vinyl-disc::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-color) 30%, #333 31%, #333 60%, var(--accent-color) 61%);
+}
+
+.vinyl-disc::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.vinyl-disc.spinning {
+    animation: vinyl-spin 2s linear infinite;
+}
+
+@keyframes vinyl-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.vinyl-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vinyl-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vinyl-artist {
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.vinyl-controls {
+    display: flex;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+.vinyl-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.vinyl-btn:hover {
+    color: var(--accent-color);
+}
+
+/* ---------- 5. 歌词雨特效 ---------- */
+.lyric-rain-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 900;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.lyric-rain-column {
+    position: absolute;
+    top: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--accent-color);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    opacity: 0;
+    animation: rain-fall linear forwards;
+    text-shadow: 0 0 8px var(--accent-color);
+    font-family: "KaiTi", "STKaiti", serif;
+    --rain-opacity: 0.8;
+}
+
+@keyframes rain-fall {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    10% {
+        opacity: var(--rain-opacity, 0.8);
+    }
+    80% {
+        opacity: calc(var(--rain-opacity, 0.8) * 0.7);
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+/* ---------- 6. 季节主题 ---------- */
+/* 春 - 七里香 (绿色系) */
+.theme-spring {
+    --accent-color: #4ade80;
+    --accent-hover: #22c55e;
+    --bg-panel: #1a2e1a;
+    --bg-hover: #2a3e2a;
+    --bg-dark: #0f1a0f;
+    --border-color: #2a4a2a;
+}
+
+/* 夏 - 晴天 (金色系) */
+.theme-summer {
+    --accent-color: #f59e0b;
+    --accent-hover: #d97706;
+    --bg-panel: #2e2a1a;
+    --bg-hover: #3e3a2a;
+    --bg-dark: #1a160f;
+    --border-color: #4a4a2a;
+}
+
+/* 秋 - 枫 (红橙系) */
+.theme-autumn {
+    --accent-color: #ef4444;
+    --accent-hover: #dc2626;
+    --bg-panel: #2e1a1a;
+    --bg-hover: #3e2a2a;
+    --bg-dark: #1a0f0f;
+    --border-color: #4a2a2a;
+}
+
+/* 冬 - 发如雪 (蓝白系) */
+.theme-winter {
+    --accent-color: #60a5fa;
+    --accent-hover: #3b82f6;
+    --bg-panel: #1a1e2e;
+    --bg-hover: #2a2e3e;
+    --bg-dark: #0f111a;
+    --border-color: #2a2e4a;
+}
+
+/* 季节主题选择器 */
+.theme-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.theme-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.theme-dot:hover {
+    transform: scale(1.2);
+}
+
+.theme-dot.active {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+.theme-dot[data-theme="default"] { background: linear-gradient(135deg, #ff69b4, #ff1493); }
+.theme-dot[data-theme="spring"] { background: linear-gradient(135deg, #4ade80, #22c55e); }
+.theme-dot[data-theme="summer"] { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.theme-dot[data-theme="autumn"] { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.theme-dot[data-theme="winter"] { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+
+/* ---------- 7. 歌迷留言板 ---------- */
+.message-bubble {
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    position: relative;
+}
+
+.message-bubble::before {
+    content: '"';
+    font-size: 24px;
+    color: var(--accent-color);
+    position: absolute;
+    top: -4px;
+    left: 8px;
+    font-style: normal;
+}
+
+/* ---------- 8. 应援打call ---------- */
+.love-burst {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2000;
+    animation: love-float 1s ease-out forwards;
+    font-size: 20px;
+}
+
+@keyframes love-float {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.5);
+    }
+    50% {
+        opacity: 0.8;
+        transform: translateY(-30px) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-60px) scale(0.8);
+    }
+}
+
+.love-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.love-btn {
+    background: none;
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 6px;
+}
+
+.love-btn:hover {
+    background: var(--accent-color);
+    color: #fff;
+}
+
+/* ---------- 9. 猜歌游戏 ---------- */
+.guess-game-panel {
+    position: absolute;
+    top: 80px;
+    right: 24px;
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid var(--accent-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    z-index: 1500;
+    min-width: 260px;
+    box-shadow: 0 0 30px rgba(255, 105, 180, 0.2);
+    backdrop-filter: blur(8px);
+    animation: guess-slide-in 0.4s ease-out;
+}
+
+@keyframes guess-slide-in {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.guess-game-panel h4 {
+    color: var(--accent-color);
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.guess-lyric {
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 10px;
+    background: var(--bg-dark);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-style: italic;
+    border-left: 3px solid var(--accent-color);
+}
+
+.guess-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.guess-option {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.guess-option:hover {
+    border-color: var(--accent-color);
+    background: rgba(255, 105, 180, 0.1);
+}
+
+.guess-option.correct {
+    border-color: #4ade80;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+}
+
+.guess-option.wrong {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.guess-score {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    text-align: right;
+}
+
+.guess-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.guess-close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ---------- 10. 时光轴回放 ---------- */
+.timeline-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(30, 30, 30, 0.95);
+    border-top: 1px solid var(--border-color);
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    backdrop-filter: blur(8px);
+}
+
+.timeline-bar .timeline-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.timeline-bar .timeline-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.timeline-bar .timeline-btn.playing {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+}
+
+.timeline-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-dark);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+}
+
+.timeline-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color), var(--accent-hover));
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+    position: relative;
+}
+
+.timeline-progress::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: -3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-color);
+}
+
+.timeline-date {
+    font-size: 11px;
+    color: var(--text-secondary);
+    width: 80px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.timeline-speed {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.timeline-speed:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* 时光轴标记可见性控制 */
+.timeline-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out !important;
+}
+
+.timeline-visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out !important;
+    animation: marker-pop 0.5s ease-out;
+}
+
+@keyframes marker-pop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- 面板功能区通用 ---------- */
+.feature-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.feature-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.feature-btn {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.feature-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.feature-btn.active {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+}
+
+.feature-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+/* 面板内容区允许滚动 */
+.panel-content {
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--bg-dark);
+}
+
+.panel-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+    border-radius: 2px;
+}

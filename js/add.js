@@ -64,8 +64,13 @@ map.on('click', function(e) {
 const avatarOptions = document.querySelectorAll('.avatar-option');
 const avatarInput = document.getElementById('avatar');
 const avatarUpload = document.getElementById('avatar-upload');
+const avatarUploadBox = document.getElementById('avatar-upload-box');
 const avatarPreview = document.getElementById('avatar-preview');
-const fileName = document.getElementById('file-name');
+
+// 点击上传区域触发文件选择
+avatarUploadBox?.addEventListener('click', () => {
+    avatarUpload.click();
+});
 
 // 1. Emoji 选择
 avatarOptions.forEach(option => {
@@ -78,10 +83,10 @@ avatarOptions.forEach(option => {
         const emoji = option.dataset.val;
         avatarInput.value = emoji;
         // 更新预览
-        avatarPreview.innerHTML = `<span style="font-size: 24px;">${emoji}</span>`;
+        avatarPreview.innerHTML = `<span style="font-size: 28px;">${emoji}</span>`;
+        avatarPreview.classList.add('has-avatar');
         // 清除文件输入
         avatarUpload.value = '';
-        fileName.textContent = '';
     });
 });
 
@@ -92,7 +97,6 @@ avatarUpload.addEventListener('change', function(e) {
 
     // 检查大小 (2MB，上传后会压缩为缩略图)
     if (file.size > 1024 * 1024 * 2) {
-        // 检查 Swal 是否存在
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: '图片过大',
@@ -105,17 +109,15 @@ avatarUpload.addEventListener('change', function(e) {
         } else {
             alert('图片大小不能超过 2MB！');
         }
-        this.value = ''; // 清空
+        this.value = '';
         return;
     }
-
-    fileName.textContent = file.name;
-    fileName.style.color = 'var(--text-secondary)'; // 重置颜色
     
-    // 预览图片 (前端预览，尚未上传)
+    // 预览图片
     const reader = new FileReader();
     reader.onload = function(event) {
         avatarPreview.innerHTML = `<img src="${event.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        avatarPreview.classList.add('has-avatar');
     };
     reader.readAsDataURL(file);
 
@@ -160,11 +162,11 @@ document.getElementById('join-form').addEventListener('submit', async function(e
     }
 
     // 检查配置是否完整
-    if (!CONFIG.API_KEY || !CONFIG.BIN_ID) {
+    if (!CONFIG.INDEX_ID) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: '配置错误',
-                text: '请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID',
+                text: '请在 js/config.js 中配置 gongju.dev 的 INDEX_ID',
                 icon: 'error',
                 confirmButtonText: '确定',
                 background: '#1e1e1e',
@@ -214,22 +216,23 @@ document.getElementById('join-form').addEventListener('submit', async function(e
     }
 
     /**
-     * 保存用户数据到 JSONBin.io
-     * 先读取现有数据，追加新用户，再整体写回
+     * 保存用户数据到 gongju.dev（支持多批次）
+     * 读取最后一个批次 → 追加新用户 → 检查大小 → 未满则整体 POST，满了则创建新批次
      * @param {string} nickname - 昵称
      * @param {string} avatarValue - 头像值（Emoji 或 Base64）
      * @param {number} lat - 纬度
      * @param {number} lng - 经度
      */
     async function saveToJSONBin(nickname, avatarValue, lat, lng) {
-        // 1. 读取现有数据
-        const readRes = await fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}/latest`, {
-            headers: { 'X-Master-Key': CONFIG.API_KEY }
-        });
-        
+        // 先加载索引，获取所有数据批次 ID
+        await loadBinIndex();
+        const activeId = getActiveBinId();
+
+        // 1. 读取最后一个批次的数据
+        const readRes = await fetch(`${CONFIG.API_BASE}/${activeId}`);
         if (!readRes.ok) throw new Error('读取数据失败');
-        const readData = await readRes.json();
-        const currentUsers = Array.isArray(readData.record) ? readData.record : [];
+        const currentData = await readRes.json();
+        const users = Array.isArray(currentData) ? currentData : [];
 
         // 2. 构造新用户数据
         const newUser = {
@@ -241,24 +244,25 @@ document.getElementById('join-form').addEventListener('submit', async function(e
         };
 
         // 3. 追加新用户
-        currentUsers.push(newUser);
+        users.push(newUser);
 
-        // 4. 整体写回 JSONBin
-        const writeRes = await fetch(`${CONFIG.API_BASE}/b/${CONFIG.BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': CONFIG.API_KEY
-            },
-            body: JSON.stringify(currentUsers)
-        });
+        // 4. 检查数据大小
+        const dataSize = new Blob([JSON.stringify(users)]).size;
 
-        if (!writeRes.ok) {
-            const errData = await writeRes.json().catch(() => ({}));
-            const errMsg = errData.message || '保存数据失败';
-            throw new Error(errMsg);
+        if (dataSize > CONFIG.BATCH_SIZE_LIMIT) {
+            // 当前批次已满，创建新批次只含新用户
+            console.log(`当前批次已满 (${(dataSize / 1024).toFixed(1)}KB)，创建新批次...`);
+            const newId = await saveDataToCloud([newUser]);
+            CONFIG.DATA_IDS.push(newId);
+            await updateIndex();
+        } else {
+            // 未满，整体 POST 更新当前批次
+            const newId = await saveDataToCloud(users);
+            // 替换最后一个批次 ID
+            CONFIG.DATA_IDS[CONFIG.DATA_IDS.length - 1] = newId;
+            await updateIndex();
         }
-        
+
         return newUser;
     }
 

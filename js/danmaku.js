@@ -402,63 +402,90 @@ function restartDanmaku() {
  * 初始化弹幕调节控件
  */
 function initDanmakuControls() {
-    // 开关
-    const toggleEl = document.getElementById('danmaku-toggle');
-    if (toggleEl) {
-        toggleEl.addEventListener('change', (e) => {
-            danmakuConfig.enabled = e.target.checked;
-            if (danmakuConfig.enabled) {
+    // 模式选择器（弹幕/歌词雨/关闭 三选一）
+    const modeRadios = document.querySelectorAll('input[name="lyric-mode"]');
+    const modeOptions = document.querySelectorAll('.mode-option');
+
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const value = e.target.value;
+
+            // 更新选中框样式
+            modeOptions.forEach(opt => opt.classList.remove('active'));
+            e.target.closest('.mode-option').classList.add('active');
+
+            if (value === 'danmaku') {
+                // 开启弹幕，关闭歌词雨
+                danmakuConfig.enabled = true;
                 initDanmaku();
-            } else {
+                window.featureState.lyricRainActive = false;
+                stopLyricRain();
+                document.getElementById('btn-lyric-rain')?.classList.remove('active');
+            } else if (value === 'lyric-rain') {
+                // 开启歌词雨，关闭弹幕
+                danmakuConfig.enabled = false;
                 stopDanmaku();
+                window.featureState.lyricRainActive = true;
+                startLyricRain();
+                document.getElementById('btn-lyric-rain')?.classList.add('active');
+            } else {
+                // 全部关闭
+                danmakuConfig.enabled = false;
+                stopDanmaku();
+                window.featureState.lyricRainActive = false;
+                stopLyricRain();
+                document.getElementById('btn-lyric-rain')?.classList.remove('active');
             }
         });
-    }
+    });
 
-    // 透明度
-    const opacityEl = document.getElementById('danmaku-opacity');
-    const opacityVal = document.getElementById('danmaku-opacity-val');
+    // 统一透明度控制（同时影响弹幕和歌词雨）
+    const opacityEl = document.getElementById('lyric-opacity');
+    const opacityVal = document.getElementById('lyric-opacity-val');
     if (opacityEl) {
         opacityEl.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             danmakuConfig.opacity = val / 100;
+            window.featureState.lyricRainOpacity = val / 100;
             if (opacityVal) opacityVal.textContent = val + '%';
         });
     }
 
-    // 速度
-    const speedEl = document.getElementById('danmaku-speed');
-    const speedVal = document.getElementById('danmaku-speed-val');
+    // 统一速度控制
+    const speedEl = document.getElementById('lyric-speed');
+    const speedVal = document.getElementById('lyric-speed-val');
     if (speedEl) {
         speedEl.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
-            // 滑块值 20 = 1.0x，值越小速度越快
             danmakuConfig.speedMultiplier = 20 / val;
+            window.featureState.lyricRainSpeed = 20 / val;
             if (speedVal) {
-                const display = danmakuConfig.speedMultiplier.toFixed(1) + 'x';
-                speedVal.textContent = display;
+                speedVal.textContent = danmakuConfig.speedMultiplier.toFixed(1) + 'x';
             }
         });
     }
 
-    // 密度
-    const densityEl = document.getElementById('danmaku-density');
-    const densityVal = document.getElementById('danmaku-density-val');
+    // 统一密度控制
+    const densityEl = document.getElementById('lyric-density');
+    const densityVal = document.getElementById('lyric-density-val');
     if (densityEl) {
         densityEl.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
-            // 密度值越小 = 弹幕越密集
-            danmakuConfig.minInterval = Math.max(200, val - 500);
-            danmakuConfig.maxInterval = val + 500;
+            danmakuConfig.minInterval = Math.max(200, val - 300);
+            danmakuConfig.maxInterval = val + 300;
+            window.featureState.lyricRainDensity = val;
             if (densityVal) {
-                if (val <= 1000) densityVal.textContent = '高';
-                else if (val <= 2500) densityVal.textContent = '中';
+                if (val <= 200) densityVal.textContent = '高';
+                else if (val <= 500) densityVal.textContent = '中';
                 else densityVal.textContent = '低';
             }
         });
-        // 松开滑块后重启弹幕调度
         densityEl.addEventListener('change', () => {
             restartDanmaku();
+            if (window.featureState.lyricRainActive) {
+                stopLyricRain();
+                startLyricRain();
+            }
         });
     }
 }

@@ -239,13 +239,11 @@ body {
 .layer-item {
     display: flex;
     align-items: center;
-    margin-bottom: 12px;
-    cursor: pointer;
+    margin-bottom: 14px;
 }
 
-.layer-item input {
-    margin-right: 12px;
-    accent-color: var(--accent-color);
+.layer-item input[type="checkbox"] {
+    display: none;
 }
 
 .layer-item label {
@@ -254,6 +252,45 @@ body {
     font-size: 14px;
     cursor: pointer;
     flex: 1;
+    user-select: none;
+}
+
+/* 开关样式 */
+.switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.switch::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 11px;
+    background: #444;
+    transition: background 0.3s;
+}
+
+.switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.3s;
+}
+
+.layer-item input[type="checkbox"]:checked + label .switch::before {
+    background: var(--accent-color);
+}
+
+.layer-item input[type="checkbox"]:checked + label .switch::after {
+    transform: translateX(18px);
 }
 
 .color-dot {
@@ -269,6 +306,55 @@ body {
 /* 弹幕调节控件 */
 .danmaku-control {
     margin-top: 24px;
+}
+
+/* 模式选择器（弹幕/歌词雨/关闭） */
+.mode-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.mode-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border: 2px solid #333;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 12px;
+    color: #888;
+    user-select: none;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.mode-option input[type="radio"] {
+    display: none;
+}
+
+.mode-option .mode-icon {
+    font-size: 18px;
+    transition: all 0.3s;
+}
+
+.mode-option:hover {
+    border-color: #555;
+    color: #bbb;
+}
+
+.mode-option.active {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background: rgba(255, 105, 180, 0.1);
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.2);
+}
+
+.mode-option.active .mode-icon {
+    transform: scale(1.1);
 }
 
 .control-row {
@@ -581,6 +667,31 @@ body {
     font-size: 14px;
 }
 
+/* 打call角标样式 */
+.user-marker-wrap {
+    position: relative;
+}
+.love-badge {
+    position: absolute;
+    top: -6px;
+    right: -12px;
+    background: linear-gradient(135deg, #ff1493, #ff69b4);
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(255, 20, 147, 0.5);
+    animation: badgePop 0.3s ease-out;
+    z-index: 10;
+    pointer-events: none;
+}
+@keyframes badgePop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
 /* 全屏模式样式 */
 :fullscreen {
     overflow: hidden;
@@ -621,6 +732,52 @@ body {
 }
 
 
+
+/* MarkerCluster 自定义聚合图标样式 */
+.custom-cluster-icon {
+    background: none !important;
+    border: none !important;
+}
+.cluster-icon {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.6);
+    animation: clusterPulse 2s ease-in-out infinite;
+}
+.cluster-icon span {
+    font-size: 12px;
+}
+.cluster-small {
+    width: 40px; height: 40px;
+    background: radial-gradient(circle, #ff69b4, #c2185b);
+    font-size: 12px;
+}
+.cluster-medium {
+    width: 48px; height: 48px;
+    background: radial-gradient(circle, #ff1493, #ad1457);
+    font-size: 14px;
+}
+.cluster-large {
+    width: 56px; height: 56px;
+    background: radial-gradient(circle, #e91e63, #880e4f);
+    font-size: 16px;
+}
+@keyframes clusterPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* 覆盖默认 MarkerCluster 样式 */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+    background: none !important;
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+    background: none !important;
+}
 
 /* Media Queries for Responsiveness */
 @media (max-width: 768px) {
