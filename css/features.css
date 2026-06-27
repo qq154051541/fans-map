@@ -705,6 +705,33 @@
     filter: drop-shadow(0 0 4px #f59e0b);
 }
 
+/* 巡演场次永久标签 */
+.concert-tooltip {
+    background: rgba(30, 30, 30, 0.9) !important;
+    border: 1px solid #f59e0b !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    white-space: nowrap !important;
+}
+
+.concert-tooltip::before {
+    border-top-color: #f59e0b !important;
+}
+
+.concert-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.concert-label .concert-year {
+    color: #fbbf24;
+    font-weight: bold;
+}
+
 /* 巡演选择浮层 */
 .tour-panel {
     position: absolute;
@@ -767,6 +794,16 @@
 .tour-item:hover {
     border-color: #f59e0b;
     background: rgba(245, 158, 11, 0.1);
+}
+
+.tour-item.active {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.18);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+.tour-item.active .tour-name {
+    color: #fbbf24;
 }
 
 .tour-name {

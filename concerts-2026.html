@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026周杰伦嘉年华Ⅱ世界巡回演唱会行程</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/concerts-2026.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- ============ 顶部导航栏 ============ -->
+<nav class="concert-nav">
+    <a href="index.html" class="nav-back">
+        <i class="fa-solid fa-arrow-left"></i> 返回地图
+    </a>
+    <div class="nav-title">2026 嘉年华Ⅱ 世界巡回演唱会</div>
+    <a href="index.html" class="nav-logo">杰迷地图</a>
+</nav>
+
+<!-- ============ 头部 Banner ============ -->
+<header class="concert-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <div class="hero-badge">出道 25 周年纪念巡演</div>
+        <h1 class="hero-title">嘉年华Ⅱ 世界巡回演唱会</h1>
+        <p class="hero-subtitle">一城一主题 · 每座城市以周杰伦经典歌曲命名</p>
+        <div class="hero-stats">
+            <div class="stat-item">
+                <span class="stat-num">6</span>
+                <span class="stat-label">官宣站点</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-num">18</span>
+                <span class="stat-label">总场次</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-num">4<span class="stat-unit">月</span></span>
+                <span class="stat-label">首站开唱</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-num">10<span class="stat-unit">月</span></span>
+                <span class="stat-label">收官之站</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ============ 筛选/图例 ============ -->
+<div class="filter-bar">
+    <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">全部站点</button>
+        <button class="filter-btn" data-filter="finished">已举办</button>
+        <button class="filter-btn" data-filter="ongoing">进行中</button>
+        <button class="filter-btn" data-filter="upcoming">待开票</button>
+    </div>
+    <div class="legend">
+        <span class="legend-item"><span class="legend-dot finished"></span> 已举办</span>
+        <span class="legend-item"><span class="legend-dot ongoing"></span> 进行中</span>
+        <span class="legend-item"><span class="legend-dot upcoming"></span> 待开票</span>
+    </div>
+</div>
+
+<!-- ============ 演唱会卡片列表 ============ -->
+<main class="concert-list" id="concertList">
+    <!-- 卡片由 JS 渲染 -->
+</main>
+
+<!-- ============ 底部 ============ -->
+<footer class="concert-footer">
+    <p><i class="fa-solid fa-circle-info"></i> 以上信息整理自官方审批公示及媒体报道，票价与开票状态以官方平台最新公告为准</p>
+    <p class="footer-platforms">官方票务平台：
+        <a href="https://www.damai.cn" target="_blank" rel="noopener">大麦网</a> ·
+        <a href="https://www.maoyan.com" target="_blank" rel="noopener">猫眼</a> ·
+        <a href="https://www.piaoxingqiu.com" target="_blank" rel="noopener">票星球</a>
+    </p>
+    <p class="footer-copy">杰迷地图 · 周杰伦歌迷全球分布图</p>
+</footer>
+
+<script src="js/concerts-2026-data.js"></script>
+<script src="js/concerts-2026-render.js"></script>
+</body>
+</html>

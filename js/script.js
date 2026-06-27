@@ -18,6 +18,8 @@ const featureState = window.featureState = {
     timelineTimer: null,
     timelineSpeed: 1,
     vinylSpinning: false,
+    tourMarkers: [],
+    tourLines: [],
     loves: {},
     messages: {}
 };
@@ -55,11 +57,11 @@ function escapeJsString(str) {
         .replace(/\r/g, '\\r');
 }
 
-// 初始化地图，设置中心点为中国视图
+// 初始化地图，默认以中国中部为中心，居中展示中国全境
 const map = L.map('map', {
     zoomControl: false, // 禁用默认缩放控件，我们将重新添加并自定义位置
     attributionControl: false
-}).setView([34.3416, 108.9398], 4); // 以西安为中心，缩放级别 4，覆盖中国大部分区域
+}).setView([34, 105], 4); // 中心点位于中国几何中心（兰州附近），缩放级别 4 覆盖中国全境
 
 // 添加自定义位置的缩放控件
 L.control.zoom({
@@ -117,12 +119,8 @@ const devIcon = L.divIcon({
 
 // 创建图层组
 const hubsLayer = L.layerGroup().addTo(map);
-// 歌迷标记点使用聚合图层组，避免大量标记点重叠卡顿
-const devsLayer = window.devsLayer = L.markerClusterGroup({
-    showCoverageOnHover: false,   // 鼠标悬停时不显示聚合范围，减少干扰
-    maxClusterRadius: 50,         // 聚合半径（像素）
-    spiderfyOnMaxZoom: true       // 最大缩放时散开展示，避免重叠点无法点击
-}).addTo(map);
+// 歌迷标记点图层组（直接显示所有标记点，不聚合）
+const devsLayer = window.devsLayer = L.layerGroup().addTo(map);
 
 // 渲染核心研发中心 (初始渲染，后续 loadUsers 会更新)
 function renderHubs() {
@@ -147,87 +145,41 @@ function renderHubs() {
 }
 renderHubs();
 
-// 演唱会巡演图层（默认不显示，由图层开关控制）
-const concertsLayer = window.concertsLayer = L.layerGroup();
-
-// 演唱会标记图标（金色麦克风样式）
-const concertIcon = L.divIcon({
-    className: 'concert-marker',
-    html: "<div class='concert-dot'></div>",
-    iconSize: [18, 18],
-    iconAnchor: [9, 9]
-});
-
-/**
- * 渲染演唱会巡演图层标记
- * 每个标记弹窗展示巡演名称、年份、城市、场馆
- */
-function renderConcerts() {
-    concertsLayer.clearLayers();
-    if (typeof concerts === 'undefined' || concerts.length === 0) return;
-    concerts.forEach(c => {
-        const safeTour = escapeHtml(c.tour);
-        const safeVenue = escapeHtml(c.venue);
-        const safeCity = escapeHtml(c.city);
-        L.marker([c.lat, c.lng], { icon: concertIcon })
-            .bindPopup(`
-                <div style="text-align: center; min-width: 160px;">
-                    <div style="font-size: 20px; margin-bottom: 4px;"><i class="fa-solid fa-guitar" style="color:#f59e0b;"></i></div>
-                    <h3 style="margin: 0 0 6px; color: #f59e0b;">${safeTour}</h3>
-                    <p style="margin: 2px 0; color: #fff; font-size: 13px;">${safeCity} · ${c.year}</p>
-                    <p style="margin: 4px 0 0; color: #a0a0a0; font-size: 11px;"><i class="fa-solid fa-location-dot"></i> ${safeVenue}</p>
-                </div>
-            `)
-            .on('mouseover', function () { this.openPopup(); })
-            .on('mouseout', function () { this.closePopup(); })
-            .addTo(concertsLayer);
-    });
-}
-renderConcerts();
-
-// 从 gongju.dev 加载用户数据（支持多批次）
+// 从 GitHub Gist 加载用户数据，云端不可用时 fallback 到虚拟数据
 async function loadUsers() {
     devsLayer.clearLayers();
     featureState.users = [];
     featureState.userMarkers = [];
-    
-    // 先加载索引，获取所有数据批次 ID
-    await loadBinIndex();
 
-    // 加载互动数据（打call + 留言）
+    // 从 Gist 加载云端用户数据（云端不可用时返回空数组）
+    const cloudUsers = await loadUsersFromCloud();
+
+    // 加载互动数据（打call + 留言，云端不可用时回退到本地）
     const interactData = await loadInteractData();
     featureState.loves = interactData.loves;
     featureState.messages = interactData.messages;
 
-    if (CONFIG.DATA_IDS.length === 0) {
-        console.error('没有可用的数据批次');
-        return;
+    let users = cloudUsers;
+
+    // 云端无数据时，使用虚拟数据 fallback，保证地图始终有分布展示
+    if (users.length === 0 && typeof MOCK_USERS !== 'undefined' && MOCK_USERS.length > 0) {
+        console.info('启用虚拟歌迷数据');
+        users = MOCK_USERS;
     }
 
+    // 合并 localStorage 中本地保存的用户（file:// 模式下通过 add.html 加入的用户）
     try {
-        // 从所有批次并行读取数据
-        const fetchPromises = CONFIG.DATA_IDS.map(dataId =>
-            fetch(`${CONFIG.API_BASE}/${dataId}`)
-            .then(response => {
-                if (!response.ok) throw new Error(`批次 ${dataId} 加载失败`);
-                return response.json();
-            })
-            .then(data => {
-                // gongju.dev 可能将数据包裹在 content 字段中
-                if (data && data.content && Array.isArray(data.content)) return data.content;
-                return Array.isArray(data) ? data : [];
-            })
-            .catch(err => {
-                console.error(`加载批次 ${dataId} 失败:`, err);
-                return [];
-            })
-        );
-
-        const allBatches = await Promise.all(fetchPromises);
-        // 合并所有批次数据
-        const users = allBatches.flat();
-        // 缓存用户数据到 featureState
-        featureState.users = users;
+        const rawLocal = localStorage.getItem('fansmap_local_users');
+        if (rawLocal) {
+            const localUsers = JSON.parse(rawLocal);
+            if (Array.isArray(localUsers) && localUsers.length > 0) {
+                users = users.concat(localUsers);
+                console.log(`合并 ${localUsers.length} 个本地保存的用户`);
+            }
+        }
+    } catch (e) { /* 忽略本地用户合并错误 */ }
+    // 缓存用户数据到 featureState
+    featureState.users = users;
         // --- 统计逻辑开始 ---
         
         // 1. 计算歌迷总数
@@ -355,9 +307,6 @@ async function loadUsers() {
             });
             marker.addTo(devsLayer);
         });
-    } catch (err) {
-        console.error('加载用户数据失败:', err);
-    }
 }
 
 // 初始加载
@@ -377,15 +326,6 @@ document.getElementById('layer-devs').addEventListener('change', (e) => {
         map.addLayer(devsLayer);
     } else {
         map.removeLayer(devsLayer);
-    }
-});
-
-// 演唱会巡演图层控制
-document.getElementById('layer-tour')?.addEventListener('change', (e) => {
-    if (e.target.checked) {
-        if (!map.hasLayer(concertsLayer)) map.addLayer(concertsLayer);
-    } else {
-        map.removeLayer(concertsLayer);
     }
 });
 

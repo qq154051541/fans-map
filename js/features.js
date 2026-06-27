@@ -354,58 +354,58 @@ function toggleHeatmap() {
 // ============================================
 
 const vinylPlaylist = [
-    { title: "七里香", artist: "周杰伦" },
-    { title: "晴天", artist: "周杰伦" },
-    { title: "稻香", artist: "周杰伦" },
-    { title: "青花瓷", artist: "周杰伦" },
-    { title: "夜曲", artist: "周杰伦" },
-    { title: "告白气球", artist: "周杰伦" },
-    { title: "简单爱", artist: "周杰伦" },
-    { title: "听妈妈的话", artist: "周杰伦" },
+    { title: "七里香", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/99/4e/e2/994ee285-7c0d-73ab-85b7-8d3899a17242/mzaf_12441330510018253101.plus.aac.p.m4a" },
+    { title: "晴天", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/20/d0/e7/20d0e7db-9c12-795a-d738-2fc3dde4ac9a/mzaf_10317517925583301645.plus.aac.p.m4a" },
+    { title: "稻香", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/c3/c4/e0/c3c4e033-2bd0-e0fc-3195-3ec68299f19f/mzaf_9545722078596740089.plus.aac.p.m4a" },
+    { title: "青花瓷", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/fd/18/39/fd18396a-1c71-5bde-be0f-9dcaa00e4b6f/mzaf_11928526430545533608.plus.aac.p.m4a" },
+    { title: "夜曲", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/cd/80/49/cd8049a8-f655-a320-fe39-399582e94ed4/mzaf_2752455179820135985.plus.aac.p.m4a" },
+    { title: "告白气球", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/8f/bc/20/8fbc20d5-ed30-3c34-7e66-2201ffba3695/mzaf_1061751424505493111.plus.aac.p.m4a" },
+    { title: "简单爱", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/a3/b0/88/a3b088c9-dac4-fa2e-5292-94d64d50a46e/mzaf_806348827827822268.plus.aac.p.m4a" },
+    { title: "听妈妈的话", artist: "周杰伦", preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/74/e1/a6/74e1a6f6-79e5-22ce-59ec-7a50b6d5f5e0/mzaf_17280939928446393714.plus.aac.p.m4a" },
 ];
 let vinylIndex = 0;
 let vinylPlaying = false;
 
 // HTML5 Audio 播放器
 const vinylAudio = new Audio();
-vinylAudio.crossOrigin = 'anonymous';
-
-// 歌曲缓存：{ 歌名: 播放URL }
-const vinylUrlCache = {};
 
 /**
- * 通过网易云音乐 API 搜索歌曲并获取播放链接
- * @param {string} keyword - 搜索关键词
- * @returns {Promise<string|null>} 播放URL或null
+ * 通过 iTunes Search API 搜索歌曲的 30 秒预览片段
+ * 作为硬编码链接的动态补充（新增歌曲时自动获取预览链接）
+ * @param {string} title - 歌曲名
+ * @param {string} artist - 歌手名
+ * @returns {Promise<string|null>} 30秒预览URL或null
  */
-async function fetchSongUrl(keyword) {
-    // 检查缓存
-    if (vinylUrlCache[keyword]) return vinylUrlCache[keyword];
-
+async function fetchPreviewFromItunes(title, artist) {
     try {
-        // 搜索歌曲
-        const searchRes = await fetch(`https://api.7boe.top/search?keywords=${encodeURIComponent(keyword)}&limit=10&type=1`);
-        const searchData = await searchRes.json();
+        const term = encodeURIComponent(`${artist} ${title}`);
+        const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&limit=5&country=tw`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) return null;
 
-        if (!searchData.result?.songs?.length) return null;
+        // 优先匹配歌手名包含"周杰"的结果
+        const track = data.results.find(r =>
+            r.artistName && r.artistName.includes('周杰') && r.previewUrl
+        ) || data.results.find(r => r.previewUrl);
 
-        // 遍历搜索结果，找到可播放的歌曲
-        for (const song of searchData.result.songs) {
-            const urlRes = await fetch(`https://api.7boe.top/song/url?id=${song.id}`);
-            const urlData = await urlRes.json();
-
-            if (urlData.data?.[0]?.url) {
-                const url = urlData.data[0].url;
-                // 缓存结果
-                vinylUrlCache[keyword] = url;
-                return url;
-            }
-        }
-        return null;
+        return track ? track.previewUrl : null;
     } catch (e) {
-        console.warn('获取歌曲链接失败:', e);
+        console.warn('iTunes 搜索失败:', e);
         return null;
     }
+}
+
+/**
+ * 获取歌曲播放链接（优先使用硬编码预览，动态获取作为补充）
+ * @param {Object} song - 歌曲对象 { title, artist, preview? }
+ * @returns {Promise<string|null>} 播放URL或null
+ */
+async function fetchSongUrl(song) {
+    // 优先使用硬编码的 iTunes 预览链接
+    if (song.preview) return song.preview;
+    // 动态从 iTunes API 获取
+    return await fetchPreviewFromItunes(song.title, song.artist);
 }
 
 /**
@@ -413,13 +413,12 @@ async function fetchSongUrl(keyword) {
  */
 async function playCurrentSong() {
     const song = vinylPlaylist[vinylIndex];
-    const keyword = `${song.title} ${song.artist}`;
 
     // 更新UI为加载状态
     const titleEl = document.getElementById('vinyl-title');
     if (titleEl) titleEl.textContent = song.title + ' (加载中...)';
 
-    const url = await fetchSongUrl(keyword);
+    const url = await fetchSongUrl(song);
 
     if (url) {
         vinylAudio.src = url;
@@ -1141,29 +1140,32 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
  */
 function toggleTourMap() {
     const btn = document.getElementById('btn-tour');
-    const layerCheckbox = document.getElementById('layer-tour');
     const isOn = btn?.classList.contains('active');
 
     if (isOn) {
-        // 关闭
+        // 关闭：移除浮层、清除标记和连线
         btn?.classList.remove('active');
-        if (layerCheckbox) {
-            layerCheckbox.checked = false;
-            layerCheckbox.dispatchEvent(new Event('change'));
-        }
         document.querySelector('.tour-panel')?.remove();
+        clearTourLayers();
     } else {
         // 开启
         btn?.classList.add('active');
-        if (layerCheckbox) {
-            layerCheckbox.checked = true;
-            layerCheckbox.dispatchEvent(new Event('change'));
-        }
         // 定位到巡演分布范围（以中国为中心）
         if (typeof map !== 'undefined') map.setView([30, 110], 3);
         showTourPanel();
         unlockAchievement('tour_explorer');
     }
+}
+
+/**
+ * 清除巡演标记和连线
+ */
+function clearTourLayers() {
+    if (typeof map === 'undefined') return;
+    window.featureState.tourMarkers?.forEach(m => map.removeLayer(m));
+    window.featureState.tourLines?.forEach(l => map.removeLayer(l));
+    window.featureState.tourMarkers = [];
+    window.featureState.tourLines = [];
 }
 
 /**
@@ -1198,38 +1200,65 @@ function showTourPanel() {
 }
 
 /**
- * 定位到指定巡演的所有场次，并绘制连接线
+ * 定位到指定巡演的所有场次，标记演出地点并注明时间，绘制连接线
  * @param {string} tourName - 巡演名称
  */
 function focusTour(tourName) {
     const tourConcerts = concerts.filter(c => c.tour === tourName);
     if (tourConcerts.length === 0) return;
 
-    // 计算所有场次的中心点和范围
-    const lats = tourConcerts.map(c => c.lat);
-    const lngs = tourConcerts.map(c => c.lng);
-    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    // 更新巡演列表选中状态：移除其他项的 active，给当前项添加 active
+    document.querySelectorAll('.tour-item').forEach(item => {
+        const nameEl = item.querySelector('.tour-name');
+        item.classList.toggle('active', nameEl && nameEl.textContent === tourName);
+    });
 
-    if (typeof map !== 'undefined') {
-        map.setView([centerLat, centerLng], 3);
-        // 清除旧的巡演连线
-        window.featureState.tourLines?.forEach(l => map.removeLayer(l));
-        window.featureState.tourLines = [];
-        // 按年份顺序连接各场次
-        const sorted = [...tourConcerts].sort((a, b) => a.year - b.year || a.city.localeCompare(b.city));
-        for (let i = 0; i < sorted.length - 1; i++) {
-            const line = L.polyline(
-                [[sorted[i].lat, sorted[i].lng], [sorted[i + 1].lat, sorted[i + 1].lng]],
-                { color: '#f59e0b', weight: 2, opacity: 0.6, dashArray: '6 6', className: 'tour-line' }
-            ).addTo(map);
-            window.featureState.tourLines.push(line);
-        }
-        // 10秒后移除连线
-        setTimeout(() => {
-            window.featureState.tourLines?.forEach(l => map.removeLayer(l));
-            window.featureState.tourLines = [];
-        }, 10000);
+    // 清除旧的巡演标记和连线
+    clearTourLayers();
+
+    // 按年份顺序排序（同年按城市名）
+    const sorted = [...tourConcerts].sort((a, b) => a.year - b.year || a.city.localeCompare(b.city));
+
+    // 为每个场次添加金色脉冲标记 + 永久时间标签 + 详情弹窗
+    sorted.forEach((c) => {
+        const icon = L.divIcon({
+            className: 'concert-marker',
+            html: '<div class="concert-dot"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+        });
+
+        const marker = L.marker([c.lat, c.lng], { icon })
+            .bindTooltip(
+                `<div class="concert-label"><span class="concert-year">${c.year}</span> ${escapeHtml(c.city)}</div>`,
+                { permanent: true, direction: 'top', offset: [0, -8], className: 'concert-tooltip' }
+            )
+            .bindPopup(`
+                <div style="text-align:center; min-width:160px;">
+                    <h3 style="margin:0 0 6px; color:#f59e0b; font-size:14px;">${escapeHtml(c.tour)}</h3>
+                    <p style="margin:2px 0; color:#fff; font-size:14px;"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(c.city)}</p>
+                    <p style="margin:2px 0; color:#a0a0a0; font-size:12px;">${escapeHtml(c.venue)}</p>
+                    <p style="margin:4px 0 0; color:#fbbf24; font-size:13px;"><i class="fa-solid fa-calendar"></i> ${c.year}年</p>
+                </div>
+            `, { maxWidth: 220 })
+            .addTo(map);
+
+        window.featureState.tourMarkers.push(marker);
+    });
+
+    // 按年份顺序用虚线连接各场次
+    for (let i = 0; i < sorted.length - 1; i++) {
+        const line = L.polyline(
+            [[sorted[i].lat, sorted[i].lng], [sorted[i + 1].lat, sorted[i + 1].lng]],
+            { color: '#f59e0b', weight: 2, opacity: 0.6, dashArray: '6 6', className: 'tour-line' }
+        ).addTo(map);
+        window.featureState.tourLines.push(line);
+    }
+
+    // 自动缩放视野到所有场次范围
+    if (window.featureState.tourMarkers.length > 0) {
+        const group = L.featureGroup(window.featureState.tourMarkers);
+        map.fitBounds(group.getBounds().pad(0.3));
     }
 }
 

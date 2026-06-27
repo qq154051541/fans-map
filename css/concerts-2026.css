@@ -1,0 +1,603 @@
+/* ============================================
+   2026 演唱会行程页面样式
+   暗色主题 · 与杰迷地图主站风格一致
+   ============================================ */
+
+:root {
+    --bg-dark: #0d0d0d;
+    --bg-card: #1a1a1a;
+    --bg-hover: #242424;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-tertiary: #666666;
+    --accent-color: #ff69b4;
+    --accent-gold: #f59e0b;
+    --border-color: #333333;
+    --radius: 12px;
+}
+
+/* 重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    line-height: 1.6;
+    /* 覆盖主站 style.css 中的 overflow:hidden / height:100vh（地图页面专用，会锁死本页滚动） */
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100vh;
+}
+
+/* ---------- 顶部导航栏 ---------- */
+.concert-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: rgba(13, 13, 13, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-back {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-back:hover {
+    color: var(--accent-color);
+}
+
+.nav-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.nav-logo {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ---------- 头部 Banner ---------- */
+.concert-hero {
+    position: relative;
+    min-height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a0a2e 0%, #16213e 40%, #0f3460 100%);
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(255, 105, 180, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(245, 158, 11, 0.12) 0%, transparent 50%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 40px 24px;
+    max-width: 800px;
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 4px 16px;
+    background: rgba(255, 105, 180, 0.15);
+    border: 1px solid var(--accent-color);
+    border-radius: 20px;
+    color: var(--accent-color);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+}
+
+.hero-title {
+    font-size: 38px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ff69b4, #f59e0b, #ff69b4);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 4s ease infinite;
+    margin-bottom: 8px;
+}
+
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.hero-subtitle {
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin-bottom: 28px;
+}
+
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 36px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent-color);
+    line-height: 1;
+}
+
+.stat-unit {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    letter-spacing: 1px;
+}
+
+/* ---------- 筛选栏 ---------- */
+.filter-bar {
+    position: sticky;
+    top: 53px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 24px;
+    background: rgba(13, 13, 13, 0.88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-group {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 6px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.25s;
+}
+
+.filter-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.filter-btn.active {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+    font-weight: 600;
+}
+
+.legend {
+    display: flex;
+    gap: 16px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.legend-dot.finished { background: #22c55e; }
+.legend-dot.ongoing { background: #f59e0b; }
+.legend-dot.upcoming { background: #3b82f6; }
+
+/* ---------- 演唱会卡片列表 ---------- */
+.concert-list {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 24px;
+}
+
+/* ---------- 单个卡片 ---------- */
+.concert-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.concert-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent-color);
+    box-shadow: 0 12px 40px rgba(255, 105, 180, 0.12);
+}
+
+/* 状态左边框 */
+.concert-card.finished { border-left: 3px solid #22c55e; }
+.concert-card.ongoing { border-left: 3px solid #f59e0b; }
+.concert-card.upcoming { border-left: 3px solid #3b82f6; }
+
+/* ---------- 卡片图片区 ---------- */
+.card-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.concert-card:hover .card-image img {
+    transform: scale(1.06);
+}
+
+.card-image.no-image::before {
+    content: '\f001';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 48px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.card-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(13,13,13,0.85) 0%, transparent 50%);
+}
+
+.card-theme-tag {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.card-city {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    font-size: 14px;
+    color: var(--accent-gold);
+    font-weight: 600;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.card-index {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.4);
+    padding: 2px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+}
+
+/* ---------- 卡片内容区 ---------- */
+.card-body {
+    padding: 18px 20px 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border: 1px solid;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-highlight {
+    font-size: 13px;
+    color: var(--accent-gold);
+    background: rgba(245, 158, 11, 0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+    line-height: 1.5;
+}
+
+.card-highlight i {
+    margin-right: 4px;
+}
+
+/* ---------- 信息网格 ---------- */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.info-item > i {
+    color: var(--accent-color);
+    font-size: 14px;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.info-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.info-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
+}
+
+.info-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.info-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+/* ---------- 票价档位 ---------- */
+.price-section,
+.platform-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.section-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.price-tiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.price-tier {
+    padding: 3px 10px;
+    background: rgba(255, 105, 180, 0.1);
+    border: 1px solid rgba(255, 105, 180, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.price-tier.pending {
+    color: var(--text-tertiary);
+    border-color: var(--border-color);
+    background: var(--bg-hover);
+}
+
+/* ---------- 票务平台 ---------- */
+.platforms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.platform-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 14px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.platform-link:hover {
+    border-color: var(--accent-color);
+    background: rgba(255, 105, 180, 0.1);
+    color: var(--accent-color);
+}
+
+.platform-link i {
+    font-size: 10px;
+}
+
+.platform-link.pending {
+    color: var(--text-tertiary);
+    cursor: default;
+}
+
+/* ---------- 空状态 ---------- */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-tertiary);
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+/* ---------- 底部 ---------- */
+.concert-footer {
+    text-align: center;
+    padding: 32px 24px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 2;
+}
+
+.concert-footer i {
+    color: var(--accent-color);
+}
+
+.footer-platforms a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-platforms a:hover {
+    text-decoration: underline;
+}
+
+.footer-copy {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+    .concert-list {
+        grid-template-columns: 1fr;
+        padding: 20px 16px 40px;
+        gap: 16px;
+    }
+
+    .hero-title {
+        font-size: 26px;
+    }
+
+    .hero-stats {
+        gap: 20px;
+    }
+
+    .stat-num {
+        font-size: 24px;
+    }
+
+    .filter-bar {
+        position: relative;
+        top: 0;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nav-title {
+        display: none;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .concert-nav {
+        padding: 12px 16px;
+    }
+
+    .hero-content {
+        padding: 30px 16px;
+    }
+
+    .hero-title {
+        font-size: 22px;
+    }
+
+    .hero-stats {
+        gap: 14px;
+    }
+}

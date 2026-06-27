@@ -161,19 +161,19 @@ document.getElementById('join-form').addEventListener('submit', async function(e
         return;
     }
 
-    // 检查配置是否完整
-    if (!CONFIG.INDEX_ID) {
+    // 检查 GitHub Token 是否已配置
+    if (typeof isApiKeyConfigured === 'function' && !isApiKeyConfigured()) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: '配置错误',
-                text: '请在 js/config.js 中配置 gongju.dev 的 INDEX_ID',
+                text: '请在 js/config.js 中填入 GitHub Token（仅 gist 权限）',
                 icon: 'error',
                 confirmButtonText: '确定',
                 background: '#1e1e1e',
                 color: '#fff'
             });
         } else {
-            alert('请在 js/config.js 中配置 JSONBin.io 的 API_KEY 和 BIN_ID');
+            alert('请在 js/config.js 中填入 GitHub Token');
         }
         return;
     }
@@ -216,25 +216,15 @@ document.getElementById('join-form').addEventListener('submit', async function(e
     }
 
     /**
-     * 保存用户数据到 gongju.dev（支持多批次）
-     * 读取最后一个批次 → 追加新用户 → 检查大小 → 未满则整体 POST，满了则创建新批次
+     * 保存用户数据到 GitHub Gist（PATCH 更新 users.json）
+     * 流程：读取 Gist → 解析 users.json → 追加新用户 → PATCH 更新
      * @param {string} nickname - 昵称
      * @param {string} avatarValue - 头像值（Emoji 或 Base64）
      * @param {number} lat - 纬度
      * @param {number} lng - 经度
      */
     async function saveToJSONBin(nickname, avatarValue, lat, lng) {
-        // 先加载索引，获取所有数据批次 ID
-        await loadBinIndex();
-        const activeId = getActiveBinId();
-
-        // 1. 读取最后一个批次的数据
-        const readRes = await fetch(`${CONFIG.API_BASE}/${activeId}`);
-        if (!readRes.ok) throw new Error('读取数据失败');
-        const currentData = await readRes.json();
-        const users = Array.isArray(currentData) ? currentData : [];
-
-        // 2. 构造新用户数据
+        // 构造新用户数据
         const newUser = {
             nickname,
             avatar: avatarValue,
@@ -243,26 +233,26 @@ document.getElementById('join-form').addEventListener('submit', async function(e
             timestamp: new Date().getTime()
         };
 
-        // 3. 追加新用户
-        users.push(newUser);
-
-        // 4. 检查数据大小
-        const dataSize = new Blob([JSON.stringify(users)]).size;
-
-        if (dataSize > CONFIG.BATCH_SIZE_LIMIT) {
-            // 当前批次已满，创建新批次只含新用户
-            console.log(`当前批次已满 (${(dataSize / 1024).toFixed(1)}KB)，创建新批次...`);
-            const newId = await saveDataToCloud([newUser]);
-            CONFIG.DATA_IDS.push(newId);
-            await updateIndex();
-        } else {
-            // 未满，整体 POST 更新当前批次
-            const newId = await saveDataToCloud(users);
-            // 替换最后一个批次 ID
-            CONFIG.DATA_IDS[CONFIG.DATA_IDS.length - 1] = newId;
-            await updateIndex();
+        // file:// 协议下无法访问云端 API，将用户数据保存到 localStorage 作为本地兜底
+        if (typeof isLocalFileMode === 'function' && isLocalFileMode()) {
+            let localUsers = [];
+            try {
+                const raw = localStorage.getItem('fansmap_local_users');
+                if (raw) localUsers = JSON.parse(raw);
+            } catch (e) { localUsers = []; }
+            localUsers.push(newUser);
+            localStorage.setItem('fansmap_local_users', JSON.stringify(localUsers));
+            console.info('本地文件模式：用户数据已保存到浏览器本地，刷新首页可在地图上看到');
+            return newUser;
         }
 
+        // 云端模式：读取 Gist 中的现有用户，追加新用户后 PATCH 更新
+        const existingUsers = await loadUsersFromCloud();
+        existingUsers.push(newUser);
+        const ok = await saveUsersToCloud(existingUsers);
+        if (!ok) {
+            throw new Error('云端保存失败，请检查 GitHub Token 配置或网络连接');
+        }
         return newUser;
     }
 
