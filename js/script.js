@@ -22,6 +22,39 @@ const featureState = window.featureState = {
     messages: {}
 };
 
+/**
+ * HTML 文本转义，防止 XSS
+ * 将 < > & " ' 转义为实体，用于 innerHTML 拼接时保护用户输入
+ * @param {string} str - 原始字符串
+ * @returns {string} 转义后的安全字符串
+ */
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * 转义字符串以安全嵌入单引号包裹的 JS 字符串字面量与内联事件处理
+ * 用于 onclick="sendLove('xxx')" 这类场景，防止昵称包含 ' 或 </script> 等破坏语法
+ * @param {string} str - 原始字符串
+ * @returns {string} 转义后的安全字符串
+ */
+function escapeJsString(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/`/g, '\\`')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+}
+
 // 初始化地图，设置中心点为中国视图
 const map = L.map('map', {
     zoomControl: false, // 禁用默认缩放控件，我们将重新添加并自定义位置
@@ -84,7 +117,12 @@ const devIcon = L.divIcon({
 
 // 创建图层组
 const hubsLayer = L.layerGroup().addTo(map);
-const devsLayer = window.devsLayer = L.layerGroup().addTo(map);
+// 歌迷标记点使用聚合图层组，避免大量标记点重叠卡顿
+const devsLayer = window.devsLayer = L.markerClusterGroup({
+    showCoverageOnHover: false,   // 鼠标悬停时不显示聚合范围，减少干扰
+    maxClusterRadius: 50,         // 聚合半径（像素）
+    spiderfyOnMaxZoom: true       // 最大缩放时散开展示，避免重叠点无法点击
+}).addTo(map);
 
 // 渲染核心研发中心 (初始渲染，后续 loadUsers 会更新)
 function renderHubs() {
@@ -108,6 +146,44 @@ function renderHubs() {
     });
 }
 renderHubs();
+
+// 演唱会巡演图层（默认不显示，由图层开关控制）
+const concertsLayer = window.concertsLayer = L.layerGroup();
+
+// 演唱会标记图标（金色麦克风样式）
+const concertIcon = L.divIcon({
+    className: 'concert-marker',
+    html: "<div class='concert-dot'></div>",
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+});
+
+/**
+ * 渲染演唱会巡演图层标记
+ * 每个标记弹窗展示巡演名称、年份、城市、场馆
+ */
+function renderConcerts() {
+    concertsLayer.clearLayers();
+    if (typeof concerts === 'undefined' || concerts.length === 0) return;
+    concerts.forEach(c => {
+        const safeTour = escapeHtml(c.tour);
+        const safeVenue = escapeHtml(c.venue);
+        const safeCity = escapeHtml(c.city);
+        L.marker([c.lat, c.lng], { icon: concertIcon })
+            .bindPopup(`
+                <div style="text-align: center; min-width: 160px;">
+                    <div style="font-size: 20px; margin-bottom: 4px;"><i class="fa-solid fa-guitar" style="color:#f59e0b;"></i></div>
+                    <h3 style="margin: 0 0 6px; color: #f59e0b;">${safeTour}</h3>
+                    <p style="margin: 2px 0; color: #fff; font-size: 13px;">${safeCity} · ${c.year}</p>
+                    <p style="margin: 4px 0 0; color: #a0a0a0; font-size: 11px;"><i class="fa-solid fa-location-dot"></i> ${safeVenue}</p>
+                </div>
+            `)
+            .on('mouseover', function () { this.openPopup(); })
+            .on('mouseout', function () { this.closePopup(); })
+            .addTo(concertsLayer);
+    });
+}
+renderConcerts();
 
 // 从 gongju.dev 加载用户数据（支持多批次）
 async function loadUsers() {
@@ -255,12 +331,14 @@ async function loadUsers() {
                 const avContent = isImg
                     ? `<img src="${u.avatar}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">`
                     : (u.avatar || '👤');
+                // 昵称做 HTML 转义，防止 XSS
+                const safeNickname = escapeHtml(u.nickname);
                 return `
                     <div style="text-align: center;">
                         <div style="font-size: 24px; margin-bottom: 4px; width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #333;">
                             ${avContent}
                         </div>
-                        <h3 style="margin: 0; color: #fff;">${u.nickname}</h3>
+                        <h3 style="margin: 0; color: #fff;">${safeNickname}</h3>
                         <p style="margin: 4px 0 0; color: #a0a0a0; font-size: 12px;">加入于: ${new Date(u.timestamp || Date.now()).toLocaleDateString()}</p>
                         ${typeof getLoveHTML === 'function' ? getLoveHTML(u.nickname) : ''}
                         ${typeof getMessageHTML === 'function' ? getMessageHTML(u) : ''}
@@ -299,6 +377,15 @@ document.getElementById('layer-devs').addEventListener('change', (e) => {
         map.addLayer(devsLayer);
     } else {
         map.removeLayer(devsLayer);
+    }
+});
+
+// 演唱会巡演图层控制
+document.getElementById('layer-tour')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        if (!map.hasLayer(concertsLayer)) map.addLayer(concertsLayer);
+    } else {
+        map.removeLayer(concertsLayer);
     }
 });
 

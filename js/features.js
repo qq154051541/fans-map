@@ -171,8 +171,11 @@ function showNearestFans() {
 
     if (window.featureState.users.length < 2) return;
 
-    // 取最后一个用户作为"当前用户"（最新加入的）
-    const currentUser = window.featureState.users[window.featureState.users.length - 1];
+    // 以最新加入的歌迷为中心：按 timestamp 降序取第一个
+    // （数组顺序不一定按时间，改用 timestamp 排序更准确）
+    const sortedByTime = [...window.featureState.users]
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const currentUser = sortedByTime[0];
     const others = window.featureState.users.filter(u => u !== currentUser);
 
     // 计算距离并排序
@@ -247,18 +250,12 @@ function toggleNearestFans() {
 // ============================================
 
 /**
- * 切换热力图显示
+ * 在地图上绘制热力图层（基于 Canvas 径向渐变叠加）
+ * 该函数只负责绘制，不处理按钮/图例/事件绑定，便于移动地图后重绘复用
+ * @returns {L.ImageOverlay|null} 创建的热力图层，无数据时返回 null
  */
-function toggleHeatmap() {
-    const btn = document.getElementById('btn-heatmap');
-    if (window.featureState.heatmapLayer) {
-        map.removeLayer(window.featureState.heatmapLayer);
-        window.featureState.heatmapLayer = null;
-        // 移除图例
-        document.querySelector('.heatmap-legend')?.remove();
-        btn?.classList.remove('active');
-        return;
-    }
+function drawHeatmap() {
+    if (!window.featureState.users || window.featureState.users.length === 0) return null;
 
     // 使用 Canvas 绘制热力点
     const heatCanvas = document.createElement('canvas');
@@ -291,13 +288,51 @@ function toggleHeatmap() {
 
     // 将 Canvas 转为 Leaflet 图层
     const bounds = map.getBounds();
-    const overlay = L.imageOverlay(heatCanvas.toDataURL(), bounds, {
+    return L.imageOverlay(heatCanvas.toDataURL(), bounds, {
         opacity: 0.7,
         interactive: false
-    }).addTo(map);
+    });
+}
 
-    window.featureState.heatmapLayer = overlay;
+/**
+ * 热力图重绘回调：地图移动/缩放后按新视口重绘热力图层
+ */
+function onHeatmapMoveEnd() {
+    if (!window.featureState.heatmapLayer) return;
+    map.removeLayer(window.featureState.heatmapLayer);
+    const newLayer = drawHeatmap();
+    if (newLayer) {
+        newLayer.addTo(map);
+        window.featureState.heatmapLayer = newLayer;
+    } else {
+        window.featureState.heatmapLayer = null;
+    }
+}
+
+/**
+ * 切换热力图显示
+ */
+function toggleHeatmap() {
+    const btn = document.getElementById('btn-heatmap');
+    if (window.featureState.heatmapLayer) {
+        // 关闭：移除图层、解绑事件、移除图例
+        map.off('moveend', onHeatmapMoveEnd);
+        map.removeLayer(window.featureState.heatmapLayer);
+        window.featureState.heatmapLayer = null;
+        document.querySelector('.heatmap-legend')?.remove();
+        btn?.classList.remove('active');
+        return;
+    }
+
+    // 开启：绘制图层、绑定事件、添加图例
+    const layer = drawHeatmap();
+    if (!layer) return;
+    layer.addTo(map);
+    window.featureState.heatmapLayer = layer;
     btn?.classList.add('active');
+
+    // 地图移动时重绘（绑定一次，关闭时统一解绑）
+    map.on('moveend', onHeatmapMoveEnd);
 
     // 添加图例
     if (!document.querySelector('.heatmap-legend')) {
@@ -312,16 +347,6 @@ function toggleHeatmap() {
         `;
         document.getElementById('map').appendChild(legend);
     }
-
-    // 地图移动时重绘
-    const redrawHeatmap = () => {
-        if (!window.featureState.heatmapLayer) return;
-        map.removeLayer(window.featureState.heatmapLayer);
-        window.featureState.heatmapLayer = null;
-        toggleHeatmap();
-    };
-    map.off('moveend', redrawHeatmap);
-    map.on('moveend', redrawHeatmap);
 }
 
 // ============================================
@@ -644,18 +669,21 @@ function switchTheme(theme) {
  */
 function getMessageHTML(user) {
     const userMessages = (window.featureState.messages && window.featureState.messages[user.nickname]) || [];
+    // 留言内容做 HTML 转义，防止 XSS
     const msgList = userMessages.map(m =>
-        `<div style="font-size:11px; color:#a0a0a0; padding:2px 0; border-bottom:1px solid #333;">${m}</div>`
+        `<div style="font-size:11px; color:#a0a0a0; padding:2px 0; border-bottom:1px solid #333;">${escapeHtml(m)}</div>`
     ).join('');
+    // 昵称同时做 JS 字符串转义（用于内联事件），保证语法安全
+    const safeNickJs = escapeJsString(user.nickname);
 
     return `
         <div class="message-bubble" style="margin-top:8px;">
             ${userMessages.length > 0 ? msgList : '<span style="color:#666;">还没有留言~</span>'}
         </div>
         <div style="display:flex; gap:4px; margin-top:6px;">
-            <input type="text" id="msg-input-${user.nickname}" placeholder="说点什么..."
+            <input type="text" class="msg-input" placeholder="说点什么..."
                 style="flex:1; background:#121212; border:1px solid #333; border-radius:4px; padding:4px 8px; color:#fff; font-size:11px; outline:none;">
-            <button onclick="leaveMessage('${user.nickname}')" 
+            <button onclick="leaveMessage('${safeNickJs}', event)"
                 style="background:var(--accent-color); border:none; border-radius:4px; padding:4px 8px; color:#fff; font-size:11px; cursor:pointer;">
                 留言
             </button>
@@ -666,9 +694,12 @@ function getMessageHTML(user) {
 /**
  * 给用户留言（保存到云端）
  * @param {string} nickname - 用户昵称
+ * @param {Event} event - 点击事件，用于定位同弹窗内的输入框
  */
-async function leaveMessage(nickname) {
-    const input = document.getElementById('msg-input-' + nickname);
+async function leaveMessage(nickname, event) {
+    // 从点击按钮向上找到弹窗容器，再查找输入框，避免依赖昵称拼接 id
+    const popupContent = event.target.closest('.leaflet-popup-content');
+    const input = popupContent ? popupContent.querySelector('.msg-input') : null;
     if (!input || !input.value.trim()) return;
 
     const msgText = input.value.trim();
@@ -678,10 +709,12 @@ async function leaveMessage(nickname) {
     // 保存到云端
     await saveInteractData(window.featureState.loves, window.featureState.messages);
 
+    // 成就统计：累计留言数
+    const stats = getAchievementStats();
+    updateAchievementStats({ messageCount: (stats.messageCount || 0) + 1 });
+
     input.value = '';
 
-    // 从 input 向上找到弹窗容器，再找留言气泡
-    const popupContent = input.closest('.leaflet-popup-content');
     if (popupContent) {
         const bubble = popupContent.querySelector('.message-bubble');
         if (bubble) {
@@ -689,6 +722,7 @@ async function leaveMessage(nickname) {
             if (noMsg && noMsg.textContent.includes('还没有留言')) noMsg.remove();
             const newMsg = document.createElement('div');
             newMsg.style.cssText = 'font-size:11px; color:#a0a0a0; padding:2px 0; border-bottom:1px solid #333;';
+            // textContent 天然安全，防止 XSS
             newMsg.textContent = msgText;
             bubble.appendChild(newMsg);
         }
@@ -712,6 +746,10 @@ async function sendLove(nickname, event) {
     // 保存到云端（不阻塞动画）
     saveInteractData(window.featureState.loves, window.featureState.messages);
 
+    // 成就统计：累计打call次数
+    const stats = getAchievementStats();
+    updateAchievementStats({ loveCount: (stats.loveCount || 0) + 1 });
+
     // 爱心飘浮动画
     const heart = document.createElement('div');
     heart.className = 'love-burst';
@@ -721,9 +759,10 @@ async function sendLove(nickname, event) {
     document.body.appendChild(heart);
     setTimeout(() => heart.remove(), 1000);
 
-    // 更新弹窗内计数显示
-    const countEl = document.getElementById('love-count-' + nickname);
-    if (countEl) countEl.innerHTML = `❤️ ${window.featureState.loves[nickname]}`;
+    // 更新弹窗内计数显示：从按钮向上找弹窗内的 .love-count，避免依赖昵称拼 id
+    const popupContent = event.target.closest('.leaflet-popup-content');
+    const countEl = popupContent ? popupContent.querySelector('.love-count') : null;
+    if (countEl) countEl.textContent = `❤️ ${window.featureState.loves[nickname]}`;
 
     // 更新地图标记上的角标
     const markerData = window.featureState.userMarkers.find(m => m.user.nickname === nickname);
@@ -751,12 +790,14 @@ async function sendLove(nickname, event) {
  */
 function getLoveHTML(nickname) {
     const count = window.featureState.loves[nickname] || 0;
+    // 昵称做 JS 字符串转义，安全嵌入内联事件
+    const safeNickJs = escapeJsString(nickname);
     return `
         <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-            <button class="love-btn" onclick="sendLove('${nickname}', event)">
+            <button class="love-btn" onclick="sendLove('${safeNickJs}', event)">
                 <i class="fa-solid fa-heart"></i> 打call
             </button>
-            <span class="love-count" id="love-count-${nickname}" style="background:rgba(255,20,147,0.15); padding:2px 8px; border-radius:10px;">
+            <span class="love-count" style="background:rgba(255,20,147,0.15); padding:2px 8px; border-radius:10px;">
                 ❤️ ${count}
             </span>
         </div>
@@ -853,6 +894,14 @@ function endGuessGame() {
 
     const total = window.featureState.guessQuestionIndex;
     const score = window.featureState.guessScore;
+
+    // 成就统计：记录最佳得分率（仅当至少答了1题）
+    if (total > 0) {
+        const rate = score / total;
+        const stats = getAchievementStats();
+        const bestRate = Math.max(stats.guessBestRate || 0, rate);
+        updateAchievementStats({ guessBestRate: bestRate });
+    }
 
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -1083,6 +1132,247 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 }
 
 // ============================================
+// 11. 演唱会巡演地图
+// ============================================
+
+/**
+ * 切换演唱会巡演图层显示
+ * 开启时自动定位到巡演分布范围，并弹出巡演选择浮层
+ */
+function toggleTourMap() {
+    const btn = document.getElementById('btn-tour');
+    const layerCheckbox = document.getElementById('layer-tour');
+    const isOn = btn?.classList.contains('active');
+
+    if (isOn) {
+        // 关闭
+        btn?.classList.remove('active');
+        if (layerCheckbox) {
+            layerCheckbox.checked = false;
+            layerCheckbox.dispatchEvent(new Event('change'));
+        }
+        document.querySelector('.tour-panel')?.remove();
+    } else {
+        // 开启
+        btn?.classList.add('active');
+        if (layerCheckbox) {
+            layerCheckbox.checked = true;
+            layerCheckbox.dispatchEvent(new Event('change'));
+        }
+        // 定位到巡演分布范围（以中国为中心）
+        if (typeof map !== 'undefined') map.setView([30, 110], 3);
+        showTourPanel();
+        unlockAchievement('tour_explorer');
+    }
+}
+
+/**
+ * 显示巡演选择浮层，列出所有巡演，点击可定位到对应场次
+ */
+function showTourPanel() {
+    document.querySelector('.tour-panel')?.remove();
+    if (typeof concerts === 'undefined') return;
+
+    const tours = getTourNames();
+    const panel = document.createElement('div');
+    panel.className = 'tour-panel';
+    panel.innerHTML = `
+        <button class="tour-close-btn" onclick="document.getElementById('btn-tour').click()"><i class="fa-solid fa-xmark"></i></button>
+        <h4><i class="fa-solid fa-guitar"></i> 周杰伦巡演地图</h4>
+        <p class="tour-tip">点击巡演名，定位到该轮巡演场次</p>
+        <div class="tour-list">
+            ${tours.map(t => {
+                const count = concerts.filter(c => c.tour === t).length;
+                const years = concerts.filter(c => c.tour === t).map(c => c.year);
+                const yearRange = Math.min(...years) === Math.max(...years)
+                    ? Math.min(...years)
+                    : `${Math.min(...years)}-${Math.max(...years)}`;
+                return `<button class="tour-item" onclick="focusTour('${escapeJsString(t)}')">
+                    <span class="tour-name">${escapeHtml(t)}</span>
+                    <span class="tour-meta">${yearRange} · ${count}场</span>
+                </button>`;
+            }).join('')}
+        </div>
+    `;
+    document.getElementById('map').appendChild(panel);
+}
+
+/**
+ * 定位到指定巡演的所有场次，并绘制连接线
+ * @param {string} tourName - 巡演名称
+ */
+function focusTour(tourName) {
+    const tourConcerts = concerts.filter(c => c.tour === tourName);
+    if (tourConcerts.length === 0) return;
+
+    // 计算所有场次的中心点和范围
+    const lats = tourConcerts.map(c => c.lat);
+    const lngs = tourConcerts.map(c => c.lng);
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+
+    if (typeof map !== 'undefined') {
+        map.setView([centerLat, centerLng], 3);
+        // 清除旧的巡演连线
+        window.featureState.tourLines?.forEach(l => map.removeLayer(l));
+        window.featureState.tourLines = [];
+        // 按年份顺序连接各场次
+        const sorted = [...tourConcerts].sort((a, b) => a.year - b.year || a.city.localeCompare(b.city));
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const line = L.polyline(
+                [[sorted[i].lat, sorted[i].lng], [sorted[i + 1].lat, sorted[i + 1].lng]],
+                { color: '#f59e0b', weight: 2, opacity: 0.6, dashArray: '6 6', className: 'tour-line' }
+            ).addTo(map);
+            window.featureState.tourLines.push(line);
+        }
+        // 10秒后移除连线
+        setTimeout(() => {
+            window.featureState.tourLines?.forEach(l => map.removeLayer(l));
+            window.featureState.tourLines = [];
+        }, 10000);
+    }
+}
+
+// ============================================
+// 12. 成就勋章系统
+// ============================================
+
+/**
+ * 成就定义表
+ * id: 唯一标识；name: 名称；desc: 描述；icon: 图标（emoji）
+ * check: (stats) => boolean，根据统计数据判断是否解锁
+ */
+const ACHIEVEMENTS = [
+    { id: 'first_visit', name: '初来乍到', desc: '访问歌迷地图', icon: '👋', check: () => true },
+    { id: 'join', name: '点亮坐标', desc: '加入杰迷网络', icon: '📍', check: s => s.joined },
+    { id: 'love_1', name: '应援新星', desc: '为歌迷打call 1 次', icon: '💖', check: s => s.loveCount >= 1 },
+    { id: 'love_10', name: '应援达人', desc: '累计打call 10 次', icon: '🔥', check: s => s.loveCount >= 10 },
+    { id: 'message', name: '留言先锋', desc: '留下第一条留言', icon: '✍️', check: s => s.messageCount >= 1 },
+    { id: 'connect', name: '牵线搭桥', desc: '使用歌迷连线功能', icon: '🔗', check: s => s.usedConnect },
+    { id: 'nearest', name: '寻友雷达', desc: '查看附近歌迷', icon: '📡', check: s => s.usedNearest },
+    { id: 'heatmap', name: '热力观察者', desc: '开启歌迷热力图', icon: '🌡️', check: s => s.usedHeatmap },
+    { id: 'guess_pass', name: '歌词达人', desc: '猜歌得分率 ≥ 60%', icon: '🎮', check: s => s.guessBestRate >= 0.6 },
+    { id: 'guess_perfect', name: '歌神', desc: '猜歌全部答对', icon: '👑', check: s => s.guessBestRate >= 1 },
+    { id: 'timeline', name: '时光旅人', desc: '使用时光轴回放', icon: '⏳', check: s => s.usedTimeline },
+    { id: 'tour_explorer', name: '巡演追随者', desc: '查看演唱会巡演地图', icon: '🎸', check: s => s.usedTour },
+    { id: 'theme', name: '变色龙', desc: '切换季节主题', icon: '🎨', check: s => s.usedTheme }
+];
+
+/** localStorage 键名 */
+const ACH_KEY = 'fans_achievements';
+const ACH_STATS_KEY = 'fans_achievement_stats';
+
+/**
+ * 读取成就解锁记录
+ * @returns {Object} { 成就id: 解锁时间戳 }
+ */
+function getAchievements() {
+    try {
+        return JSON.parse(localStorage.getItem(ACH_KEY) || '{}');
+    } catch { return {}; }
+}
+
+/**
+ * 读取成就统计数据
+ * @returns {Object} 统计数据
+ */
+function getAchievementStats() {
+    try {
+        return JSON.parse(localStorage.getItem(ACH_STATS_KEY) || '{}');
+    } catch { return {}; }
+}
+
+/**
+ * 保存成就统计数据
+ * @param {Object} stats - 统计数据
+ */
+function saveAchievementStats(stats) {
+    localStorage.setItem(ACH_STATS_KEY, JSON.stringify(stats));
+}
+
+/**
+ * 更新成就统计字段并尝试解锁
+ * @param {Object} patch - 需要合并更新的字段
+ */
+function updateAchievementStats(patch) {
+    const stats = { ...getAchievementStats(), ...patch };
+    saveAchievementStats(stats);
+    // 自动检查所有成就是否解锁
+    ACHIEVEMENTS.forEach(a => {
+        if (!getAchievements()[a.id] && a.check(stats)) {
+            unlockAchievement(a.id);
+        }
+    });
+}
+
+/**
+ * 解锁指定成就（若尚未解锁），并弹出提示
+ * @param {string} id - 成就 id
+ */
+function unlockAchievement(id) {
+    const ach = getAchievements();
+    if (ach[id]) return; // 已解锁
+    const def = ACHIEVEMENTS.find(a => a.id === id);
+    if (!def) return;
+    ach[id] = Date.now();
+    localStorage.setItem(ACH_KEY, JSON.stringify(ach));
+    showAchievementToast(def);
+}
+
+/**
+ * 显示成就解锁提示
+ * @param {Object} def - 成就定义
+ */
+function showAchievementToast(def) {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+        <div class="ach-toast-icon">${def.icon}</div>
+        <div class="ach-toast-body">
+            <div class="ach-toast-title">🏆 成就解锁</div>
+            <div class="ach-toast-name">${def.name}</div>
+            <div class="ach-toast-desc">${def.desc}</div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
+/**
+ * 显示成就勋章墙弹窗
+ */
+function showAchievementWall() {
+    document.querySelector('.achievement-wall')?.remove();
+    const unlocked = getAchievements();
+    const total = ACHIEVEMENTS.length;
+    const unlockedCount = Object.keys(unlocked).length;
+
+    const wall = document.createElement('div');
+    wall.className = 'achievement-wall';
+    wall.innerHTML = `
+        <button class="ach-wall-close" onclick="this.closest('.achievement-wall').remove()"><i class="fa-solid fa-xmark"></i></button>
+        <h3><i class="fa-solid fa-trophy"></i> 成就勋章墙</h3>
+        <div class="ach-progress">已解锁 ${unlockedCount} / ${total}</div>
+        <div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${(unlockedCount / total * 100).toFixed(0)}%"></div></div>
+        <div class="ach-grid">
+            ${ACHIEVEMENTS.map(a => {
+                const isUnlocked = !!unlocked[a.id];
+                return `<div class="ach-item ${isUnlocked ? 'unlocked' : 'locked'}" title="${escapeHtml(a.desc)}">
+                    <div class="ach-icon">${isUnlocked ? a.icon : '🔒'}</div>
+                    <div class="ach-name">${escapeHtml(a.name)}</div>
+                    <div class="ach-desc">${escapeHtml(a.desc)}</div>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+    document.body.appendChild(wall);
+    // 点击遮罩关闭
+    wall.addEventListener('click', (e) => {
+        if (e.target === wall) wall.remove();
+    });
+}
+
+// ============================================
 // 初始化所有功能
 // ============================================
 
@@ -1098,9 +1388,18 @@ function initFeatures() {
     initVinylPlayer();
 
     // 绑定功能按钮事件
-    document.getElementById('btn-connect')?.addEventListener('click', toggleConnectionMode);
-    document.getElementById('btn-nearest')?.addEventListener('click', toggleNearestFans);
-    document.getElementById('btn-heatmap')?.addEventListener('click', toggleHeatmap);
+    document.getElementById('btn-connect')?.addEventListener('click', () => {
+        toggleConnectionMode();
+        if (window.featureState.connectionMode) updateAchievementStats({ usedConnect: true });
+    });
+    document.getElementById('btn-nearest')?.addEventListener('click', () => {
+        toggleNearestFans();
+        if (window.featureState.nearestHighlight.length > 0) updateAchievementStats({ usedNearest: true });
+    });
+    document.getElementById('btn-heatmap')?.addEventListener('click', () => {
+        toggleHeatmap();
+        if (window.featureState.heatmapLayer) updateAchievementStats({ usedHeatmap: true });
+    });
     document.getElementById('btn-lyric-rain')?.addEventListener('click', toggleLyricRain);
     document.getElementById('btn-guess')?.addEventListener('click', () => {
         const btn = document.getElementById('btn-guess');
@@ -1111,12 +1410,32 @@ function initFeatures() {
             startGuessGame();
         }
     });
-    document.getElementById('btn-timeline')?.addEventListener('click', toggleTimeline);
+    document.getElementById('btn-timeline')?.addEventListener('click', () => {
+        toggleTimeline();
+        if (window.featureState.timelineActive) updateAchievementStats({ usedTimeline: true });
+    });
+
+    // 巡演地图按钮
+    document.getElementById('btn-tour')?.addEventListener('click', toggleTourMap);
+
+    // 成就勋章墙按钮
+    document.getElementById('btn-achievement')?.addEventListener('click', showAchievementWall);
 
     // 季节主题按钮
     document.querySelectorAll('.theme-dot').forEach(dot => {
-        dot.addEventListener('click', () => switchTheme(dot.dataset.theme));
+        dot.addEventListener('click', () => {
+            switchTheme(dot.dataset.theme);
+            updateAchievementStats({ usedTheme: true });
+        });
     });
+
+    // 首次访问解锁「初来乍到」
+    unlockAchievement('first_visit');
+
+    // 若用户曾加入过（通过 localStorage 标记），解锁「点亮坐标」
+    if (localStorage.getItem('fans_joined') === '1') {
+        updateAchievementStats({ joined: true });
+    }
 }
 
 window.addEventListener('DOMContentLoaded', initFeatures);

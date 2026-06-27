@@ -281,7 +281,10 @@ document.getElementById('join-form').addEventListener('submit', async function(e
 
         // 保存到 JSONBin.io
         await saveToJSONBin(nickname, avatarValue, lat, lng);
-        
+
+        // 标记已加入，供成就系统解锁「点亮坐标」
+        localStorage.setItem('fans_joined', '1');
+
         // 检查 Swal 是否存在
         if (typeof Swal !== 'undefined') {
             await Swal.fire({

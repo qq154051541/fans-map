@@ -29,7 +29,7 @@
             <div class="panel-content">
                 <div class="metric-card">
                     <div class="metric-title"><i class="fa-solid fa-music"></i> 杰迷总数</div>
-                    <div class="metric-value">12,450</div>
+                    <div class="metric-value">--</div>
                     <div class="metric-change positive">无与伦比 <i class="fa-solid fa-heart"></i></div>
                 </div>
 
@@ -49,6 +49,14 @@
                             <span class="switch"></span>
                             <span class="color-dot dev"></span>
                             歌迷标记点
+                        </label>
+                    </div>
+                    <div class="layer-item">
+                        <input type="checkbox" id="layer-tour">
+                        <label for="layer-tour">
+                            <span class="switch"></span>
+                            <span class="color-dot tour"></span>
+                            演唱会巡演
                         </label>
                     </div>
                 </div>
@@ -98,6 +106,8 @@
                         <button class="feature-btn" id="btn-heatmap" title="歌迷密度热力图"><i class="fa-solid fa-fire"></i> 热力图</button>
                         <button class="feature-btn" id="btn-guess" title="猜歌小游戏"><i class="fa-solid fa-gamepad"></i> 猜歌</button>
                         <button class="feature-btn" id="btn-timeline" title="时光轴回放"><i class="fa-solid fa-clock-rotate-left"></i> 时光轴</button>
+                        <button class="feature-btn" id="btn-tour" title="演唱会巡演地图"><i class="fa-solid fa-guitar"></i> 巡演</button>
+                        <button class="feature-btn" id="btn-achievement" title="成就勋章墙"><i class="fa-solid fa-trophy"></i> 勋章</button>
                     </div>
                 </div>
 
@@ -156,6 +166,7 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="js/config.js"></script>
     <script src="js/hubs.js"></script>
+    <script src="js/concerts.js"></script>
     <script src="js/script.js"></script>
     <script src="js/danmaku.js"></script>
     <script src="js/features.js"></script>

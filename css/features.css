@@ -673,3 +673,322 @@
     background-color: var(--accent-color);
     border-radius: 2px;
 }
+
+/* ---------- 11. 演唱会巡演地图 ---------- */
+.concert-marker {
+    background: none;
+}
+
+.concert-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fbbf24 30%, #f59e0b 70%);
+    border: 2px solid #fef3c7;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+    animation: concert-pulse 2s ease-in-out infinite;
+}
+
+@keyframes concert-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+    50% { box-shadow: 0 0 16px rgba(245, 158, 11, 1); }
+}
+
+/* 图层管理中的巡演颜色点 */
+.color-dot.tour {
+    background: #f59e0b;
+}
+
+/* 巡演连线 */
+.tour-line {
+    stroke: #f59e0b;
+    filter: drop-shadow(0 0 4px #f59e0b);
+}
+
+/* 巡演选择浮层 */
+.tour-panel {
+    position: absolute;
+    top: 80px;
+    right: 24px;
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    padding: 16px 18px;
+    z-index: 1500;
+    min-width: 240px;
+    max-width: 280px;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
+    backdrop-filter: blur(8px);
+    animation: tour-slide-in 0.4s ease-out;
+}
+
+@keyframes tour-slide-in {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.tour-panel h4 {
+    color: #f59e0b;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tour-tip {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.tour-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tour-item {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-primary);
+}
+
+.tour-item:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.tour-name {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tour-meta {
+    font-size: 10px;
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+
+.tour-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tour-close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ---------- 12. 成就勋章系统 ---------- */
+/* 成就解锁提示 */
+.achievement-toast {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    background: linear-gradient(135deg, rgba(30,30,30,0.97), rgba(45,30,45,0.97));
+    border: 1px solid var(--accent-color);
+    border-radius: 12px;
+    padding: 12px 18px;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(255, 105, 180, 0.3);
+    backdrop-filter: blur(8px);
+    animation: ach-toast-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), ach-toast-out 0.4s ease-in 3s forwards;
+    max-width: 280px;
+}
+
+@keyframes ach-toast-in {
+    from { opacity: 0; transform: translateX(60px) scale(0.8); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes ach-toast-out {
+    to { opacity: 0; transform: translateX(60px) scale(0.9); }
+}
+
+.ach-toast-icon {
+    font-size: 32px;
+    filter: drop-shadow(0 0 8px var(--accent-color));
+    animation: ach-bounce 0.6s ease-out;
+}
+
+@keyframes ach-bounce {
+    0% { transform: scale(0) rotate(-180deg); }
+    60% { transform: scale(1.3) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+.ach-toast-title {
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+
+.ach-toast-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.ach-toast-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* 成就勋章墙弹窗（wall 自身作为居中面板，点击空白处由 JS 关闭） */
+.achievement-wall {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 92vw);
+    max-height: 86vh;
+    overflow-y: auto;
+    background: rgba(20, 20, 25, 0.98);
+    border: 1px solid var(--accent-color);
+    border-radius: 16px;
+    padding: 24px;
+    z-index: 2500;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 105, 180, 0.15);
+    animation: ach-wall-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes ach-wall-pop {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.ach-wall-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    transition: color 0.2s;
+}
+
+.ach-wall-close:hover {
+    color: var(--text-primary);
+}
+
+.achievement-wall h3 {
+    color: var(--accent-color);
+    font-size: 18px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ach-progress {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.ach-progress-bar {
+    height: 8px;
+    background: var(--bg-dark);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.ach-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color), #fbbf24);
+    border-radius: 4px;
+    transition: width 0.6s ease-out;
+}
+
+.ach-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.ach-item {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.ach-item.unlocked {
+    border-color: var(--accent-color);
+    background: rgba(255, 105, 180, 0.06);
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.15);
+}
+
+.ach-item.unlocked:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 105, 180, 0.25);
+}
+
+.ach-item.locked {
+    opacity: 0.5;
+    filter: grayscale(0.6);
+}
+
+.ach-icon {
+    font-size: 30px;
+    margin-bottom: 6px;
+}
+
+.ach-item.unlocked .ach-icon {
+    filter: drop-shadow(0 0 6px var(--accent-color));
+}
+
+.ach-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.ach-desc {
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* 响应式：小屏成就墙全宽 */
+@media (max-width: 600px) {
+    .achievement-wall {
+        width: 94vw;
+        padding: 18px;
+    }
+    .ach-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    .tour-panel {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}
