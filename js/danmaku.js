@@ -13,12 +13,12 @@ const danmakuConfig = {
     enabled: true,
 
     // 发送配置
-    minInterval: 1000,  // 最小发送间隔（毫秒）
-    maxInterval: 2000,  // 最大发送间隔（毫秒）
+    minInterval: 2000,  // 最小发送间隔（毫秒）
+    maxInterval: 4000,  // 最大发送间隔（毫秒）
 
     // 动画配置
-    minDuration: 20,     // 最小动画持续时间（秒）
-    maxDuration: 30,    // 最大动画持续时间（秒）
+    minDuration: 25,     // 最小动画持续时间（秒）
+    maxDuration: 35,    // 最大动画持续时间（秒）
     speedMultiplier: 1.0, // 速度倍率（1.0 为默认）
 
     // 样式配置

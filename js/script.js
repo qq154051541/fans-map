@@ -58,9 +58,12 @@ function escapeJsString(str) {
 }
 
 // 初始化地图，默认以中国中部为中心，居中展示中国全境
+// 使用 Canvas 渲染器，大幅提升 5000+ 标记点的渲染性能（Canvas 绘制 vs DOM 元素）
 const map = L.map('map', {
     zoomControl: false, // 禁用默认缩放控件，我们将重新添加并自定义位置
-    attributionControl: false
+    attributionControl: false,
+    preferCanvas: true,  // 优先使用 Canvas 渲染器
+    renderer: L.canvas({ padding: 0.5 }) // Canvas 渲染器，padding 提供平滑滚动画布缓冲
 }).setView([34, 105], 4); // 中心点位于中国几何中心（兰州附近），缩放级别 4 覆盖中国全境
 
 // 添加自定义位置的缩放控件
@@ -243,38 +246,16 @@ async function loadUsers() {
         renderHubs();
 
         users.forEach(user => {
-            const avatar = user.avatar || '';
-            const isImage = avatar.startsWith('imgs/') || avatar.startsWith('data:image') || avatar.startsWith('http://') || avatar.startsWith('https://');
-            const avatarContent = isImage 
-                ? `<img src="${avatar}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 stroke=%22%231785fb%22 stroke-width=%222%22/%3E%3Cpath d=%22M12 16V12M12 8H12.01%22 stroke=%22%231785fb%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E'">`
-                : (avatar || '👤');
-
-            // 获取打call数量
+            // 使用 circleMarker（Canvas 渲染），避免 5000 个 DOM 元素拖慢页面
             const loveCount = featureState.loves[user.nickname] || 0;
-            const loveBadge = loveCount > 0
-                ? `<div class="love-badge">❤️${loveCount}</div>`
-                : '';
-
-            const userIcon = L.divIcon({
-                className: 'user-marker',
-                html: `<div class="user-marker-wrap">
-                    <div style="
-                        background-color: #1e1e1e;
-                        border: 2px solid #1785fb;
-                        border-radius: 50%;
-                        width: 24px; height: 24px;
-                        display: flex; justify-content: center; align-items: center;
-                        font-size: 14px;
-                        box-shadow: 0 0 8px rgba(23, 133, 251, 0.5);
-                        overflow: hidden;
-                    ">${avatarContent}</div>
-                    ${loveBadge}
-                </div>`,
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
+            const marker = L.circleMarker([user.lat, user.lng], {
+                radius: loveCount > 0 ? 6 : 4,
+                fillColor: '#1785fb',
+                color: '#1785fb',
+                weight: 1,
+                opacity: 0.9,
+                fillOpacity: 0.7
             });
-
-            const marker = L.marker([user.lat, user.lng], { icon: userIcon });
             featureState.userMarkers.push({ marker, user });
 
             // 动态生成弹窗内容（每次打开时重新读取 localStorage）

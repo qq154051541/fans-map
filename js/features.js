@@ -68,12 +68,13 @@ function handleConnectionClick(marker, user) {
 
     const idx = window.featureState.connectionSelected.findIndex(s => s.user.nickname === user.nickname);
     if (idx !== -1) {
-        // 取消选中
+        // 取消选中，恢复原样式
         window.featureState.connectionSelected.splice(idx, 1);
-        marker.getElement()?.classList.remove('connect-selected');
+        marker.setStyle({ color: '#1785fb', fillColor: '#1785fb', radius: 4 });
     } else {
         window.featureState.connectionSelected.push({ marker, user });
-        marker.getElement()?.classList.add('connect-selected');
+        // 选中高亮：改为粉色
+        marker.setStyle({ color: '#ff69b4', fillColor: '#ff69b4', radius: 7 });
 
         // 选了两个就连线
         if (window.featureState.connectionSelected.length === 2) {
@@ -144,7 +145,7 @@ function drawConnectionLine(a, b) {
  */
 function clearConnectionHighlights() {
     window.featureState.connectionSelected.forEach(s => {
-        s.marker.getElement()?.classList.remove('connect-selected');
+        s.marker.setStyle({ color: '#1785fb', fillColor: '#1785fb', radius: 4 });
     });
 }
 
@@ -160,74 +161,158 @@ function clearAllConnections() {
 }
 
 // ============================================
-// 2. 距离最近的歌迷
+// 2. 距离最近的歌迷（基于浏览器定位）
 // ============================================
 
 /**
- * 高亮显示距离当前用户最近的3个歌迷
+ * 获取浏览器当前定位，标记自身位置并找出最近的10个歌迷连线显示距离
  */
 function showNearestFans() {
     clearNearestHighlights();
 
-    if (window.featureState.users.length < 2) return;
+    if (window.featureState.users.length < 2) {
+        Swal.fire({ icon: 'info', title: '歌迷数据不足', text: '当前歌迷数量太少，无法查找附近歌迷' });
+        return;
+    }
 
-    // 以最新加入的歌迷为中心：按 timestamp 降序取第一个
-    // （数组顺序不一定按时间，改用 timestamp 排序更准确）
-    const sortedByTime = [...window.featureState.users]
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    const currentUser = sortedByTime[0];
-    const others = window.featureState.users.filter(u => u !== currentUser);
-
-    // 计算距离并排序
-    const distances = others.map(u => ({
-        user: u,
-        dist: haversineDistance(currentUser.lat, currentUser.lng, u.lat, u.lng)
-    })).sort((a, b) => a.dist - b.dist);
-
-    const nearest3 = distances.slice(0, 3);
-
-    nearest3.forEach((item, idx) => {
-        const markerData = window.featureState.userMarkers.find(m => m.user === item.user);
-        if (markerData) {
-            const el = markerData.marker.getElement();
-            if (el) {
-                el.classList.add('nearest-marker');
-                // 添加排名徽章
-                const badge = document.createElement('span');
-                badge.className = 'nearest-badge';
-                badge.textContent = `TOP${idx + 1}`;
-                el.style.position = 'relative';
-                el.appendChild(badge);
-            }
-            window.featureState.nearestHighlight.push(markerData.marker);
-        }
+    // 弹出加载提示
+    Swal.fire({
+        title: '正在获取定位...',
+        text: '请在浏览器弹窗中允许定位权限',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
     });
 
-    // 同时画连线到最近3个
-    nearest3.forEach(item => {
-        const markerData = window.featureState.userMarkers.find(m => m.user === item.user);
-        if (markerData) {
-            drawConnectionLine(
-                { marker: null, user: currentUser },
-                { marker: markerData.marker, user: item.user }
-            );
-        }
+    if (!navigator.geolocation) {
+        Swal.fire({ icon: 'error', title: '不支持定位', text: '当前浏览器不支持地理定位功能' });
+        return;
+    }
+
+    /**
+     * 定位成功回调：标记自身位置 + 查找最近10个歌迷并连线
+     * @param {GeolocationPosition} pos - 浏览器定位结果
+     */
+    function onLocateSuccess(pos) {
+        Swal.close();
+        const myLat = pos.coords.latitude;
+        const myLng = pos.coords.longitude;
+
+        // 在地图上标记自身位置（红色脉冲标记）
+        const myIcon = L.divIcon({
+            className: 'my-location-marker',
+            html: '<div class="my-location-dot"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+        const myMarker = L.marker([myLat, myLng], { icon: myIcon, zIndexOffset: 1000 })
+            .bindPopup('<div style="text-align:center;"><b style="color:#ef4444;">我的位置</b></div>')
+            .addTo(map);
+        window.featureState.nearestHighlight.push(myMarker);
+        window.featureState.myLocationMarker = myMarker;
+
+        // 计算所有歌迷到自身的距离并排序
+        const distances = window.featureState.users.map(u => ({
+            user: u,
+            dist: haversineDistance(myLat, myLng, u.lat, u.lng)
+        })).sort((a, b) => a.dist - b.dist);
+
+        const nearest10 = distances.slice(0, 10);
+
+        nearest10.forEach((item) => {
+            const markerData = window.featureState.userMarkers.find(m => m.user === item.user);
+            if (markerData) {
+                // Canvas 标记高亮：改为金色 + 放大
+                markerData.marker.setStyle({
+                    color: '#fbbf24',
+                    fillColor: '#f59e0b',
+                    radius: 8,
+                    weight: 2
+                });
+                window.featureState.nearestHighlight.push(markerData.marker);
+
+                // 画连线（带距离标签，不自动消失）
+                drawNearestLine(myLat, myLng, item.user, item.dist);
+            }
+        });
+
+        // 缩放视野到自身+最近歌迷范围
+        const allLatLngs = [[myLat, myLng], ...nearest10.map(n => [n.user.lat, n.user.lng])];
+        map.fitBounds(L.latLngBounds(allLatLngs).pad(0.2));
+
+        Swal.fire({
+            icon: 'success',
+            title: `已找到 ${nearest10.length} 位附近歌迷`,
+            text: `最近: ${nearest10[0].dist.toFixed(1)}km，最远: ${nearest10[nearest10.length - 1].dist.toFixed(1)}km`,
+            timer: 3000,
+            showConfirmButton: false
+        });
+    }
+
+    /**
+     * 定位失败回调：提示错误信息
+     * @param {GeolocationPositionError} err - 定位错误对象
+     */
+    function onLocateError(err) {
+        let msg = '定位失败';
+        if (err.code === 1) msg = '定位权限被拒绝，请在浏览器设置中允许定位权限';
+        else if (err.code === 2) msg = '定位不可用，请检查网络或GPS';
+        else if (err.code === 3) msg = '定位超时，请重试';
+        Swal.fire({ icon: 'error', title: '定位失败', text: msg });
+    }
+
+    navigator.geolocation.getCurrentPosition(onLocateSuccess, onLocateError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
     });
 }
 
 /**
- * 清除最近歌迷高亮
+ * 画一条从自身位置到附近歌迷的连线（带距离标签，不自动消失）
+ * @param {number} myLat - 自身纬度
+ * @param {number} myLng - 自身经度
+ * @param {Object} user - 目标歌迷数据
+ * @param {number} dist - 距离（km）
+ */
+function drawNearestLine(myLat, myLng, user, dist) {
+    const latlngs = [[myLat, myLng], [user.lat, user.lng]];
+    const line = L.polyline(latlngs, {
+        color: '#f59e0b',
+        weight: 2,
+        opacity: 0.7,
+        dashArray: '6 4'
+    }).addTo(map);
+
+    // 中点添加距离标签
+    const midLat = (myLat + user.lat) / 2;
+    const midLng = (myLng + user.lng) / 2;
+    const label = L.marker([midLat, midLng], {
+        icon: L.divIcon({
+            className: 'nearest-distance-label',
+            html: `<span class="dist-badge">${dist.toFixed(1)}km</span>`,
+            iconSize: [60, 20],
+            iconAnchor: [30, 10]
+        })
+    }).addTo(map);
+
+    window.featureState.connectionLines.push({ line, label });
+}
+
+/**
+ * 清除最近歌迷高亮和自身位置标记
  */
 function clearNearestHighlights() {
     window.featureState.nearestHighlight.forEach(marker => {
-        const el = marker.getElement();
-        if (el) {
-            el.classList.remove('nearest-marker');
-            const badge = el.querySelector('.nearest-badge');
-            if (badge) badge.remove();
+        if (marker === window.featureState.myLocationMarker) {
+            // 自身位置标记是 L.marker，直接移除
+            map.removeLayer(marker);
+        } else {
+            // 歌迷标记是 circleMarker，恢复样式
+            marker.setStyle({ color: '#1785fb', fillColor: '#1785fb', radius: 4, weight: 1 });
         }
     });
     window.featureState.nearestHighlight = [];
+    window.featureState.myLocationMarker = null;
     clearAllConnections();
 }
 
@@ -763,22 +848,15 @@ async function sendLove(nickname, event) {
     const countEl = popupContent ? popupContent.querySelector('.love-count') : null;
     if (countEl) countEl.textContent = `❤️ ${window.featureState.loves[nickname]}`;
 
-    // 更新地图标记上的角标
+    // 更新地图标记上的角标（Canvas 标记：有打call时放大+变色）
     const markerData = window.featureState.userMarkers.find(m => m.user.nickname === nickname);
     if (markerData) {
-        const iconEl = markerData.marker.getElement();
-        if (iconEl) {
-            const wrap = iconEl.querySelector('.user-marker-wrap');
-            if (wrap) {
-                let badge = wrap.querySelector('.love-badge');
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.className = 'love-badge';
-                    wrap.appendChild(badge);
-                }
-                badge.textContent = `❤️${window.featureState.loves[nickname]}`;
-            }
-        }
+        const loveCount = window.featureState.loves[nickname] || 0;
+        markerData.marker.setStyle({
+            radius: loveCount > 0 ? 6 : 4,
+            color: loveCount > 0 ? '#ff69b4' : '#1785fb',
+            fillColor: loveCount > 0 ? '#ff69b4' : '#1785fb'
+        });
     }
 }
 
@@ -959,14 +1037,11 @@ function showTimelineBar() {
     `;
     document.getElementById('map').appendChild(bar);
 
-    // 初始状态：隐藏所有用户标记
+    // 初始状态：隐藏所有用户标记（Canvas 标记用 opacity 控制）
     let hidden = 0;
     featureState.userMarkers.forEach(({ marker }) => {
-        const el = marker.getElement();
-        if (el) {
-            el.classList.add('timeline-hidden');
-            hidden++;
-        }
+        marker.setStyle({ opacity: 0, fillOpacity: 0 });
+        hidden++;
     });
     console.log(`时光轴: 已隐藏 ${hidden}/${featureState.userMarkers.length} 个标记`);
 }
@@ -980,11 +1055,7 @@ function hideTimelineBar() {
 
     // 恢复所有用户标记
     featureState.userMarkers.forEach(({ marker }) => {
-        const el = marker.getElement();
-        if (el) {
-            el.classList.remove('timeline-hidden');
-            el.classList.remove('timeline-visible');
-        }
+        marker.setStyle({ opacity: 0.9, fillOpacity: 0.7 });
     });
 
     window.featureState.timelineProgress = 0;
@@ -1052,12 +1123,9 @@ function startTimelinePlay() {
             const userTime = user.timestamp || minTime;
             if (userTime <= currentTime && !shownSet.has(idx)) {
                 shownSet.add(idx);
-                const el = marker.getElement();
-                if (el && el.classList.contains('timeline-hidden')) {
-                    el.classList.remove('timeline-hidden');
-                    el.classList.add('timeline-visible');
-                    newCount++;
-                }
+                // Canvas 标记：通过 opacity 控制显示
+                marker.setStyle({ opacity: 0.9, fillOpacity: 0.7 });
+                newCount++;
             }
         });
 
