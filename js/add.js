@@ -2,7 +2,7 @@
 const map = L.map('picker-map', {
     zoomControl: false,
     attributionControl: false
-}).setView([34.3416, 108.9398], 3);
+}).setView([31.82, 117.25], 10);
 
 // 加载高德深色底图
 L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=7', {

@@ -57,14 +57,14 @@ function escapeJsString(str) {
         .replace(/\r/g, '\\r');
 }
 
-// 初始化地图，默认以中国中部为中心，居中展示中国全境
+// 初始化地图，默认以合肥为中心，展示合肥地区
 // 使用 Canvas 渲染器，大幅提升 5000+ 标记点的渲染性能（Canvas 绘制 vs DOM 元素）
 const map = L.map('map', {
     zoomControl: false, // 禁用默认缩放控件，我们将重新添加并自定义位置
     attributionControl: false,
     preferCanvas: true,  // 优先使用 Canvas 渲染器
     renderer: L.canvas({ padding: 0.5 }) // Canvas 渲染器，padding 提供平滑滚动画布缓冲
-}).setView([34, 105], 4); // 中心点位于中国几何中心（兰州附近），缩放级别 4 覆盖中国全境
+}).setView([31.82, 117.25], 10); // 中心点合肥，缩放级别 10 展示城市级别
 
 // 添加自定义位置的缩放控件
 L.control.zoom({
@@ -131,17 +131,23 @@ function renderHubs() {
     hubs.forEach(hub => {
         L.marker([hub.lat, hub.lng], { icon: hubIcon })
             .bindPopup(`
-                <div style="text-align: center;">
+                <div style="text-align: center; min-width: 160px;">
                     <h3 style="margin: 0 0 8px;">${hub.name}</h3>
                     <p style="margin: 0; color: #a0a0a0;"><i class="fa-solid fa-users"></i> 粉丝: <span style="color: #fff; font-weight: bold;">${hub.devs}</span></p>
-                    <p style="margin: 4px 0 0; color: #666; font-size: 10px;">${hub.lat.toFixed(4)}, ${hub.lng.toFixed(4)}</p>
+                    <p style="margin: 4px 0 8px; color: #666; font-size: 10px;">会长: ${hub.president || '未知'}</p>
+                    <button onclick="generatePixelArt('${hub.name}')" style="
+                        background: linear-gradient(135deg, #ff69b4, #ff1493);
+                        color: #fff; border: none; padding: 6px 16px;
+                        border-radius: 20px; font-size: 12px; cursor: pointer;
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.05)'"
+                      onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-image"></i> 生成像素画
+                    </button>
                 </div>
             `)
-            .on('mouseover', function (e) {
+            .on('click', function (e) {
                 this.openPopup();
-            })
-            .on('mouseout', function (e) {
-                this.closePopup();
             })
             .addTo(hubsLayer);
     });
